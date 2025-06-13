@@ -127,23 +127,121 @@ class LLMInterface:
             raise
     
     async def query_json(self, prompt: str, system_prompt: str = "", temperature: float = 1.0) -> Dict[str, Any]:
-        """Query LLM and expect JSON response"""
-        json_prompt = f"{prompt}\n\nPlease respond with valid JSON only."
+        """Query LLM and expect JSON response with robust parsing"""
+        json_prompt = f"{prompt}\n\nIMPORTANT: Respond with valid JSON only. Start with {{ and end with }}. No additional text."
         response = await self.query(json_prompt, system_prompt, temperature)
         
-        try:
-            # Extract JSON from response
-            start_idx = response.find('{')
-            end_idx = response.rfind('}') + 1
-            if start_idx != -1 and end_idx != 0:
-                json_str = response[start_idx:end_idx]
-                return json.loads(json_str)
-            else:
-                # Fallback: try to parse entire response
-                return json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {response}")
-            raise ValueError(f"Invalid JSON response from LLM: {str(e)}")
+        # Multiple parsing strategies for o3 model compatibility
+        parsing_strategies = [
+            # Strategy 1: Extract first complete JSON object
+            lambda r: self._extract_json_object(r),
+            # Strategy 2: Clean and parse entire response
+            lambda r: json.loads(self._clean_json_response(r)),
+            # Strategy 3: Try parsing response as-is
+            lambda r: json.loads(r.strip()),
+            # Strategy 4: Extract content between code blocks
+            lambda r: self._extract_from_code_blocks(r),
+        ]
+        
+        for i, strategy in enumerate(parsing_strategies):
+            try:
+                result = strategy(response)
+                if isinstance(result, dict):
+                    return result
+            except (json.JSONDecodeError, ValueError, AttributeError) as e:
+                logger.debug(f"JSON parsing strategy {i+1} failed: {str(e)}")
+                continue
+        
+        # Final fallback: return a structured error response
+        logger.error(f"All JSON parsing strategies failed for response: {response[:200]}...")
+        return self._create_fallback_response(response)
+    
+    def _extract_json_object(self, response: str) -> Dict[str, Any]:
+        """Extract the first complete JSON object from response"""
+        start_idx = response.find('{')
+        if start_idx == -1:
+            raise ValueError("No JSON object found")
+        
+        brace_count = 0
+        for i, char in enumerate(response[start_idx:], start_idx):
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    json_str = response[start_idx:i+1]
+                    return json.loads(json_str)
+        
+        raise ValueError("Incomplete JSON object")
+    
+    def _clean_json_response(self, response: str) -> str:
+        """Clean response for JSON parsing"""
+        # Remove common non-JSON prefixes/suffixes
+        response = response.strip()
+        
+        # Remove markdown code blocks
+        if response.startswith('```'):
+            lines = response.split('\n')
+            if len(lines) > 2:
+                response = '\n'.join(lines[1:-1])
+        
+        # Remove common prefixes
+        prefixes_to_remove = [
+            "Here's the JSON response:",
+            "JSON response:",
+            "Response:",
+            "```json",
+            "```"
+        ]
+        
+        for prefix in prefixes_to_remove:
+            if response.startswith(prefix):
+                response = response[len(prefix):].strip()
+        
+        return response
+    
+    def _extract_from_code_blocks(self, response: str) -> Dict[str, Any]:
+        """Extract JSON from markdown code blocks"""
+        import re
+        
+        # Look for JSON in code blocks
+        code_block_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
+        match = re.search(code_block_pattern, response, re.DOTALL)
+        
+        if match:
+            return json.loads(match.group(1))
+        
+        raise ValueError("No JSON found in code blocks")
+    
+    def _create_fallback_response(self, original_response: str) -> Dict[str, Any]:
+        """Create a fallback response when JSON parsing fails"""
+        return {
+            "error": "json_parsing_failed",
+            "original_response": original_response[:500],  # Truncate for safety
+            "confidence": 0.1,
+            "solution": "JSON parsing failed - using fallback response",
+            "reasoning_steps": ["Failed to parse LLM response as JSON"],
+            "compliance_score": 0.0,
+            "r1_compliance": False,
+            "r2_compliance": False,
+            "c1_compliance": False,
+            "c2_compliance": False,
+            "c3_compliance": False,
+            "overall_t1_compliance": False,
+            "u1_compliance": False,
+            "u2_compliance": False,
+            "c4_compliance": False,
+            "c5_compliance": False,
+            "c6_compliance": False,
+            "overall_tu_compliance": False,
+            "e1_compliance": False,
+            "e2_compliance": False,
+            "e3_compliance": False,
+            "overall_tustar_compliance": False,
+            "verification_passed": False,
+            "verification_score": 0.0,
+            "should_revise": True
+        }
 
 class ReasoningStateMachine:
     """State machine for coordinating reasoning process"""
