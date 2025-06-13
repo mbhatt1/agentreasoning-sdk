@@ -220,13 +220,13 @@ The system implements three interconnected tautologies with specific compliance 
 
 ```mermaid
 graph TB
-    subgraph "T1 Reasoning-Capability Tautology"
+    subgraph T1_Group ["T1 Reasoning-Capability Tautology"]
         T1[T1 Engine]
-        T1R1[R1: Correct Solution<br/>Confidence ≥ 0.7]
-        T1R2[R2: Distribution Shift<br/>Confidence ≥ 0.6]
-        T1C1[C1: Representation Invariance<br/>Quality Consistency ≥ 0.8]
-        T1C2[C2: Complexity Scaling<br/>20-Disk Hanoi Level]
-        T1C3[C3: Zero-Shot Robustness<br/>Threshold ≥ 0.7]
+        T1R1["R1: Correct Solution<br/>Confidence >= 0.7"]
+        T1R2["R2: Distribution Shift<br/>Confidence >= 0.6"]
+        T1C1["C1: Representation Invariance<br/>Quality Consistency >= 0.8"]
+        T1C2["C2: Complexity Scaling<br/>20-Disk Hanoi Level"]
+        T1C3["C3: Zero-Shot Robustness<br/>Threshold >= 0.7"]
         
         T1 --> T1R1
         T1 --> T1R2
@@ -235,13 +235,13 @@ graph TB
         T1 --> T1C3
     end
     
-    subgraph "TU Understanding-Capability Tautology"
+    subgraph TU_Group ["TU Understanding-Capability Tautology"]
         TU[TU Engine]
-        TUU1[U1: Truth-Preserving Mapping<br/>Internal Representation]
-        TUU2[U2: Statistical Independence<br/>Novel Examples]
-        TUC4[C4: Modal Invariance<br/>Score ≥ 0.8]
-        TUC5[C5: Counterfactual Competence<br/>Score ≥ 0.7]
-        TUC6[C6: Distribution Robustness<br/>Score ≥ 0.6]
+        TUU1["U1: Truth-Preserving Mapping<br/>Internal Representation"]
+        TUU2["U2: Statistical Independence<br/>Novel Examples"]
+        TUC4["C4: Modal Invariance<br/>Score >= 0.8"]
+        TUC5["C5: Counterfactual Competence<br/>Score >= 0.7"]
+        TUC6["C6: Distribution Robustness<br/>Score >= 0.6"]
         
         TU --> TUU1
         TU --> TUU2
@@ -250,11 +250,11 @@ graph TB
         TU --> TUC6
     end
     
-    subgraph "TU* Extended Understanding-Capability Tautology"
+    subgraph TUS_Group ["TU* Extended Understanding-Capability Tautology"]
         TUS[TU* Engine]
-        TUSE1[E1: Causal Fidelity<br/>Score ≥ 0.7]
-        TUSE2[E2: Metacognitive Awareness<br/>Score ≥ 0.6]
-        TUSE3[E3: Phenomenal Awareness<br/>Score ≥ 0.3 (Theoretical)]
+        TUSE1["E1: Causal Fidelity<br/>Score >= 0.7"]
+        TUSE2["E2: Metacognitive Awareness<br/>Score >= 0.6"]
+        TUSE3["E3: Phenomenal Awareness<br/>Score >= 0.3 - Theoretical"]
         
         TUS --> TUSE1
         TUS --> TUSE2
@@ -316,36 +316,36 @@ The system operates at theoretical maximum complexity with all tests designed fo
 
 ```mermaid
 flowchart LR
-    subgraph "Input Complexity"
-        A[20-Disk Hanoi Level<br/>2^20-1 = 1,048,575 Operations]
-        B[1,048,575 Parallel Dimensions]
-        C[Exponential Relationships<br/>2^n Complexity]
-        D[Quantum Superposition States]
+    subgraph Input_Complexity ["Input Complexity"]
+        A["20-Disk Hanoi Level<br/>2^20-1 = 1,048,575 Operations"]
+        B["1,048,575 Parallel Dimensions"]
+        C["Exponential Relationships<br/>2^n Complexity"]
+        D["Quantum Superposition States"]
     end
     
-    subgraph "Processing Pipeline"
-        E[Ultra-Complex Input] --> F[Hyperdimensional Parsing]
-        F --> G[Multiversal Representation]
-        G --> H[Quantum Reasoning Engine]
-        H --> I[Exponential Verification]
+    subgraph Processing_Pipeline ["Processing Pipeline"]
+        E["Ultra-Complex Input"] --> F["Hyperdimensional Parsing"]
+        F --> G["Multiversal Representation"]
+        G --> H["Quantum Reasoning Engine"]
+        H --> I["Exponential Verification"]
     end
     
-    subgraph "Compliance Testing"
-        J[T1: 20-Disk Reasoning]
-        K[TU: Multiversal Understanding]
-        L[TU*: Hyperdimensional Analysis]
+    subgraph Compliance_Testing ["Compliance Testing"]
+        J["T1: 20-Disk Reasoning"]
+        K["TU: Multiversal Understanding"]
+        L["TU*: Hyperdimensional Analysis"]
         
-        J --> M[C1: Quality ≥ 0.8]
-        J --> N[C2: Scaling ≥ 0.6]
-        J --> O[C3: Robustness ≥ 0.7]
+        J --> M["C1: Quality >= 0.8"]
+        J --> N["C2: Scaling >= 0.6"]
+        J --> O["C3: Robustness >= 0.7"]
         
-        K --> P[C4: Modal ≥ 0.8]
-        K --> Q[C5: Counterfactual ≥ 0.7]
-        K --> R[C6: Distribution ≥ 0.6]
+        K --> P["C4: Modal >= 0.8"]
+        K --> Q["C5: Counterfactual >= 0.7"]
+        K --> R["C6: Distribution >= 0.6"]
         
-        L --> S[E1: Causal ≥ 0.7]
-        L --> T[E2: Metacognitive ≥ 0.6]
-        L --> U[E3: Phenomenal ≥ 0.3]
+        L --> S["E1: Causal >= 0.7"]
+        L --> T["E2: Metacognitive >= 0.6"]
+        L --> U["E3: Phenomenal >= 0.3"]
     end
     
     A --> E
