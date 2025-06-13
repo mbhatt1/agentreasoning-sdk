@@ -186,11 +186,11 @@ graph TD
     M -->|No| G
     M -->|Yes| N[COMPLETE]
     
-    style A fill:#e1f5fe
-    style N fill:#c8e6c9
-    style G fill:#fff3e0
-    style F fill:#f3e5f5
-    style J fill:#fce4ec
+    style A fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    style N fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style G fill:#FF9800,stroke:#F57C00,stroke-width:2px,color:#fff
+    style F fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style J fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
 ```
 
 ### State Descriptions
@@ -264,12 +264,12 @@ graph TB
     T1 -.->|Feeds Into| TU
     TU -.->|Required For| TUS
     
-    style T1 fill:#e3f2fd
-    style TU fill:#f3e5f5
-    style TUS fill:#fff3e0
-    style T1C1 fill:#ffcdd2
-    style TUC4 fill:#ffcdd2
-    style TUSE1 fill:#ffcdd2
+    style T1 fill:#1976D2,stroke:#0D47A1,stroke-width:2px,color:#fff
+    style TU fill:#7B1FA2,stroke:#4A148C,stroke-width:2px,color:#fff
+    style TUS fill:#F57C00,stroke:#E65100,stroke-width:2px,color:#fff
+    style T1C1 fill:#D32F2F,stroke:#B71C1C,stroke-width:2px,color:#fff
+    style TUC4 fill:#D32F2F,stroke:#B71C1C,stroke-width:2px,color:#fff
+    style TUSE1 fill:#D32F2F,stroke:#B71C1C,stroke-width:2px,color:#fff
 ```
 
 ## Supported Representation Formats
@@ -357,12 +357,12 @@ flowchart LR
     I --> K
     I --> L
     
-    style A fill:#ffcdd2
-    style E fill:#e1f5fe
-    style H fill:#f3e5f5
-    style J fill:#c8e6c9
-    style K fill:#c8e6c9
-    style L fill:#c8e6c9
+    style A fill:#D32F2F,stroke:#B71C1C,stroke-width:2px,color:#fff
+    style E fill:#1976D2,stroke:#0D47A1,stroke-width:2px,color:#fff
+    style H fill:#7B1FA2,stroke:#4A148C,stroke-width:2px,color:#fff
+    style J fill:#388E3C,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style K fill:#388E3C,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style L fill:#388E3C,stroke:#1B5E20,stroke-width:2px,color:#fff
 ```
 
 ## Examples
