@@ -167,9 +167,11 @@ class LLMInterface:
                 if attempt == 0:
                     json_prompt = f"{prompt}\n\nIMPORTANT: Respond with valid JSON only. Start with {{ and end with }}. No additional text."
                 elif attempt == 1:
-                    json_prompt = f"{prompt}\n\nCRITICAL: Return ONLY valid JSON. No explanations, no markdown, no code blocks. Just pure JSON starting with {{ and ending with }}."
+                    json_prompt = f"{prompt}\n\nCRITICAL: Return ONLY valid JSON. No explanations, no markdown, no code blocks. Just pure JSON starting with {{ and ending with }}. Example format: {{\"key\": \"value\", \"number\": 0.5}}"
+                elif attempt == 2:
+                    json_prompt = f"{prompt}\n\nJSON ONLY: Return a complete, valid JSON object. Ensure all braces are closed. No truncation allowed. Use double quotes for all strings. End with }}"
                 else:
-                    json_prompt = f"{prompt}\n\nJSON ONLY: Return a complete, valid JSON object. Ensure all braces are closed. No truncation allowed."
+                    json_prompt = f"{prompt}\n\nSTRICT JSON: Must be parseable by json.loads(). Format: {{\"field1\": \"value1\", \"field2\": 0.5, \"field3\": true}}. No trailing commas. No comments. Complete object only."
                 
                 # Increase max tokens for later attempts
                 max_tokens = 2000 if attempt == 0 else 4000
@@ -177,18 +179,24 @@ class LLMInterface:
                 # O3 model only supports temperature=1, so don't increment
                 response = await self.query(json_prompt, system_prompt, 1.0, max_tokens)
                 
-                # Multiple parsing strategies for robust JSON parsing
+                # Enhanced parsing strategies for robust JSON parsing
                 parsing_strategies = [
                     # Strategy 1: Try parsing response as-is (most common case)
                     lambda r: json.loads(r.strip()),
-                    # Strategy 2: Extract first complete JSON object
+                    # Strategy 2: Try parsing with different whitespace handling
+                    lambda r: json.loads(r.replace('\n', ' ').replace('\t', ' ').strip()),
+                    # Strategy 3: Extract first complete JSON object
                     lambda r: self._extract_json_object(r),
-                    # Strategy 3: Clean and parse entire response
+                    # Strategy 4: Clean and parse entire response
                     lambda r: json.loads(self._clean_json_response(r)),
-                    # Strategy 4: Extract content between code blocks
+                    # Strategy 5: Extract content between code blocks
                     lambda r: self._extract_from_code_blocks(r),
-                    # Strategy 5: Try to fix common JSON issues
+                    # Strategy 6: Try to fix common JSON issues
                     lambda r: self._fix_and_parse_json(r),
+                    # Strategy 7: Extract JSON from mixed content
+                    lambda r: self._extract_json_from_mixed_content(r),
+                    # Strategy 8: Try parsing with relaxed JSON
+                    lambda r: self._parse_relaxed_json(r),
                 ]
                 
                 for i, strategy in enumerate(parsing_strategies):
@@ -309,6 +317,58 @@ class LLMInterface:
         
         # Try to parse the fixed JSON
         return json.loads(cleaned)
+    
+    def _extract_json_from_mixed_content(self, response: str) -> Dict[str, Any]:
+        """Extract JSON from mixed content with text and JSON"""
+        import re
+        
+        # Look for JSON-like patterns in the text
+        json_patterns = [
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Nested braces
+            r'\{.*?\}',  # Simple braces
+        ]
+        
+        for pattern in json_patterns:
+            matches = re.findall(pattern, response, re.DOTALL)
+            for match in matches:
+                try:
+                    return json.loads(match)
+                except:
+                    continue
+        
+        raise ValueError("No valid JSON found in mixed content")
+    
+    def _parse_relaxed_json(self, response: str) -> Dict[str, Any]:
+        """Parse JSON with relaxed rules"""
+        import re
+        
+        # Clean the response
+        cleaned = response.strip()
+        
+        # Find the JSON part
+        start = cleaned.find('{')
+        if start == -1:
+            raise ValueError("No JSON object found")
+        
+        # Find the matching closing brace
+        brace_count = 0
+        end = start
+        for i, char in enumerate(cleaned[start:], start):
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    end = i + 1
+                    break
+        
+        json_str = cleaned[start:end]
+        
+        # Try to fix common issues
+        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)  # Remove trailing commas
+        json_str = re.sub(r'([{,]\s*)(\w+):', r'\1"\2":', json_str)  # Quote unquoted keys
+        
+        return json.loads(json_str)
     
     def _create_fallback_response(self, original_response: str) -> Dict[str, Any]:
         """Create a fallback response when JSON parsing fails"""
