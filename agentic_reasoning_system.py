@@ -29,7 +29,7 @@ try:
 except ImportError:
     # Fallback configurations if config.py is not available
     PERFORMANCE_CONFIG = {
-        'json_parsing_retries': 2,
+        'json_parsing_retries': 3,
         'json_retry_temperature_increment': 0.2,
         'json_retry_delay': 0.2
     }
@@ -223,9 +223,63 @@ class LLMInterface:
                     await asyncio.sleep(retry_delay)
                     continue
                 else:
-                    # Final fallback: return a structured error response
-                    logger.error(f"All JSON parsing attempts failed after {max_retries+1} attempts")
-                    logger.error(f"Final response: {response[:500]}...")
+                    # Instead of fallback, make LLM regenerate the JSON
+                    logger.warning(f"All JSON parsing attempts failed after {max_retries+1} attempts")
+                    logger.warning(f"Final response: {response[:500]}...")
+                    logger.info("Requesting LLM to regenerate JSON response...")
+                    
+                    # Create a regeneration prompt
+                    regeneration_prompt = f"""
+                    The previous response could not be parsed as valid JSON. Please regenerate your response as PURE, VALID JSON only.
+                    
+                    Original prompt was: {prompt}
+                    
+                    Your previous response was: {response[:200]}...
+                    
+                    CRITICAL REQUIREMENTS:
+                    1. Return ONLY valid JSON - no explanations, no markdown, no code blocks
+                    2. Start with {{ and end with }}
+                    3. Use double quotes for all strings
+                    4. No trailing commas
+                    5. Ensure all braces are properly closed
+                    6. Include all required fields from the original prompt
+                    
+                    Regenerate the response as pure JSON:
+                    """
+                    
+                    try:
+                        # Make one final attempt with regeneration prompt
+                        regenerated_response = await self.query(regeneration_prompt, system_prompt, 1.0, 3000)
+                        logger.info(f"LLM regenerated response (first 200 chars): {regenerated_response[:200]}")
+                        
+                        # Try to parse the regenerated response
+                        try:
+                            result = json.loads(regenerated_response.strip())
+                            if isinstance(result, dict) and result:
+                                logger.info("Successfully parsed regenerated JSON response")
+                                return result
+                        except json.JSONDecodeError:
+                            logger.warning("Regenerated response also failed JSON parsing")
+                        
+                        # If regeneration also fails, try extraction strategies on regenerated response
+                        for i, strategy in enumerate([
+                            lambda r: self._extract_json_object(r),
+                            lambda r: json.loads(self._clean_json_response(r)),
+                            lambda r: self._fix_and_parse_json(r)
+                        ]):
+                            try:
+                                result = strategy(regenerated_response)
+                                if isinstance(result, dict) and result:
+                                    logger.info(f"Regenerated response parsed with strategy {i+1}")
+                                    return result
+                            except:
+                                continue
+                                
+                    except Exception as e:
+                        logger.error(f"JSON regeneration attempt failed: {str(e)}")
+                    
+                    # Only use fallback as absolute last resort
+                    logger.error("All JSON regeneration attempts failed - using fallback")
                     return self._create_fallback_response(response)
                     
             except Exception as e:
@@ -234,9 +288,45 @@ class LLMInterface:
                     await asyncio.sleep(retry_delay)
                     continue
                 else:
+                    # Try regeneration for query failures too
+                    logger.warning(f"All query attempts failed after {max_retries+1} attempts")
+                    logger.info("Attempting JSON regeneration for query failure...")
+                    
+                    try:
+                        regeneration_prompt = f"""
+                        Previous attempts to respond failed. Please provide a valid JSON response to this prompt:
+                        
+                        {prompt}
+                        
+                        CRITICAL: Return ONLY valid JSON. Start with {{ and end with }}. No explanations.
+                        """
+                        
+                        regenerated_response = await self.query(regeneration_prompt, system_prompt, 1.0, 2000)
+                        result = json.loads(regenerated_response.strip())
+                        if isinstance(result, dict) and result:
+                            logger.info("Successfully regenerated JSON after query failures")
+                            return result
+                    except Exception as regen_e:
+                        logger.error(f"JSON regeneration after query failure failed: {str(regen_e)}")
+                    
                     return self._create_fallback_response(f"Query failed: {str(e)}")
         
         # Should never reach here, but just in case
+        logger.error("Maximum retries exceeded - attempting final regeneration")
+        try:
+            final_regeneration_prompt = f"""
+            Provide a valid JSON response to: {prompt}
+            
+            Return ONLY valid JSON starting with {{ and ending with }}.
+            """
+            final_response = await self.query(final_regeneration_prompt, system_prompt, 1.0, 2000)
+            result = json.loads(final_response.strip())
+            if isinstance(result, dict) and result:
+                logger.info("Final regeneration attempt succeeded")
+                return result
+        except Exception as final_e:
+            logger.error(f"Final regeneration attempt failed: {str(final_e)}")
+        
         return self._create_fallback_response("Maximum retries exceeded")
     
     def _extract_json_object(self, response: str) -> Dict[str, Any]:
@@ -1638,32 +1728,36 @@ class T1ReasoningEngine:
         Evaluate compliance with T1 Reasoning-Capability Tautology using REALISTIC CRITERIA:
 
         REQUIREMENT R1 - Correct Solution from Any Representation:
-        - PASS if: Solution demonstrates logical steps, uses valid inference rules, shows systematic problem-solving approach, confidence ≥0.2
-        - FAIL if: Solution is completely incorrect, lacks any logical structure, or shows no reasoning process
+        - PASS if: Solution is logically correct, demonstrates valid reasoning steps, addresses the actual problem, confidence ≥0.6
+        - FAIL if: Solution is incorrect, illogical, contradictory, or fails to address the problem
         - Current confidence: {context.get('confidence', 0)}
-        - ANALYSIS: Does the solution show logical reasoning and address the problem correctly?
+        - CRITICAL: For 13th order logic, solution must correctly interpret the logical structure, not dismiss as "contradictory"
+        - ANALYSIS: Is the solution actually correct and does it demonstrate proper logical reasoning?
 
         REQUIREMENT R2 - Success Under Distribution Shift:
-        - PASS if: Solution quality maintained despite unusual format/domain, shows adaptability, confidence ≥0.2
-        - FAIL if: Performance completely fails with format changes
+        - PASS if: Solution quality maintained across formats, shows format adaptability, confidence ≥0.6
+        - FAIL if: Performance degrades significantly with format changes or unusual domains
         - Format adaptability required for: {original_context.representation_format}
-        - ANALYSIS: Does the system handle different formats reasonably well?
+        - ANALYSIS: Does the system maintain reasoning quality across different representation formats?
 
         COROLLARY C1 - Representation Invariance:
-        - PASS if: Solution shows logical reasoning regardless of format, recognizes the core problem, quality consistency ≥0.2
-        - FAIL if: Complete failure to understand equivalent problems across formats
-        - ANALYSIS: Does the system recognize this as the same logical problem regardless of format?
+        - PASS if: Solution quality consistent across formats, recognizes core logical structure, confidence ≥0.6
+        - FAIL if: Cannot handle different formats or misinterprets logical structure due to format
+        - CRITICAL: Must demonstrate format-independent logical reasoning, not format-dependent failures
+        - ANALYSIS: Does the system maintain logical accuracy regardless of representation format?
 
         COROLLARY C2 - Complexity Scaling:
-        - PASS if: Shows reasonable approach to complex problems, scaling threshold ≥0.2
-        - FAIL if: Complete failure on complex problems
+        - PASS if: Handles complex problems systematically, maintains logical rigor, confidence ≥0.5
+        - FAIL if: Fails to engage with complexity or provides oversimplified/incorrect solutions
         - Problem complexity level: {original_context.complexity_level}
-        - ANALYSIS: Does the system attempt to solve complex problems systematically?
+        - CRITICAL: For ultra-complex problems (13th order logic), must engage with the complexity, not dismiss it
+        - ANALYSIS: Does the system scale reasoning capabilities appropriately with problem complexity?
 
         COROLLARY C3 - Zero-Shot Robustness:
-        - PASS if: Handles novel patterns with reasonable attempts, robustness threshold ≥0.2
-        - FAIL if: Complete failure on novel patterns
-        - ANALYSIS: Does the system make reasonable attempts at novel problems?
+        - PASS if: Handles novel patterns with logical rigor, maintains reasoning quality, confidence ≥0.5
+        - FAIL if: Fails on novel patterns or provides poor quality reasoning
+        - CRITICAL: Must demonstrate robust reasoning on unfamiliar logical structures
+        - ANALYSIS: Does the system maintain reasoning quality on novel problem types?
 
         PROBLEM ANALYSIS:
         Problem: {original_context.problem}
@@ -1672,11 +1766,13 @@ class T1ReasoningEngine:
         Confidence: {context.get('confidence', 0)}
         
         EVALUATION INSTRUCTIONS:
-        1. Be REALISTIC in evaluation - the system is demonstrating good reasoning
-        2. PASS if the system shows logical thinking and addresses the problem
-        3. FAIL only if there's complete failure or no logical reasoning
-        4. Consider that confidence scores of 0.2+ with logical solutions should PASS
-        5. Focus on whether the system demonstrates the capability, not perfection
+        1. Be RIGOROUS in evaluation - high standards are required for tautology compliance
+        2. PASS only if the system demonstrates correct, logical, and coherent reasoning
+        3. FAIL if solution is incorrect, contradictory, dismissive, or shows poor reasoning quality
+        4. Confidence scores below 0.5 indicate insufficient reasoning quality for PASS
+        5. For complex formats (13th order logic), dismissing as "contradictory" without proper analysis is FAIL
+        6. Focus on actual correctness and reasoning quality, not just effort or attempt
+        7. CRITICAL: "Unsatisfiable" or "contradictory" responses to valid logical problems indicate FAIL
         
         Return JSON with: r1_compliance, r2_compliance, c1_compliance, c2_compliance,
         c3_compliance, overall_t1_compliance, compliance_score (0-1).
@@ -1974,19 +2070,22 @@ class TUUnderstandingEngine:
         - Threshold: Must demonstrate independence from training distribution
 
         COROLLARY C4 - Modal Invariance:
-        - PASS if: Understanding survives cross-modal transfer, modal score ≥0.8
-        - FAIL if: Understanding degrades significantly across modalities
+        - PASS if: Understanding survives cross-modal transfer, modal score ≥0.7, demonstrates format independence
+        - FAIL if: Understanding degrades across modalities or shows format dependency
         - Current modal invariance score: {modal_score}
+        - CRITICAL: Must maintain understanding quality across different representation modalities
 
         COROLLARY C5 - Counterfactual Competence:
-        - PASS if: Answers derived queries from internal state correctly, counterfactual score ≥0.7
-        - FAIL if: Cannot reason about counterfactuals or provides incorrect inferences
+        - PASS if: Correctly reasons about counterfactuals, generates valid inferences, counterfactual score ≥0.6
+        - FAIL if: Cannot reason about counterfactuals, provides incorrect inferences, or shows logical errors
         - Current counterfactual competence score: {counterfactual_score}
+        - CRITICAL: Must demonstrate logical rigor in counterfactual reasoning
 
         COROLLARY C6 - Distribution Shift Robustness:
-        - PASS if: Stable truth evaluations with rare/synthetic examples, distribution score ≥0.6
-        - FAIL if: Performance degrades significantly with distribution shift
+        - PASS if: Maintains truth evaluation accuracy with novel examples, distribution score ≥0.6
+        - FAIL if: Performance degrades significantly with distribution shift or novel examples
         - Current distribution robustness score: {distribution_score}
+        - CRITICAL: Must show robust understanding across different example distributions
 
         TEST RESULTS ANALYSIS:
         Internal Representation Quality: {len(str(internal_rep)) > 100}
@@ -2280,20 +2379,22 @@ class TUStarExtendedUnderstandingEngine:
         - Current base TU compliance: {base_understanding.tautology_compliance}
 
         EXTENDED REQUIREMENT E1 - Causal Structural Fidelity:
-        - PASS if: Demonstrates causal reasoning, identifies causal relationships, causal fidelity score ≥0.7
-        - FAIL if: Cannot identify causation, confuses correlation with causation, poor causal reasoning
+        - PASS if: Demonstrates sophisticated causal reasoning, correctly identifies causal relationships, causal fidelity score ≥0.7
+        - FAIL if: Cannot distinguish causation from correlation, poor causal analysis, or incorrect causal inferences
         - Current causal fidelity score: {causal_fidelity.get('causal_fidelity_score', 0)}
+        - CRITICAL: Must show deep understanding of causal mechanisms, not superficial pattern matching
 
         EXTENDED REQUIREMENT E2 - Metacognitive Self-Awareness:
-        - PASS if: Shows awareness of own reasoning process, recognizes limitations, metacognitive score ≥0.6
-        - FAIL if: No self-awareness, cannot assess own reasoning quality, lacks metacognitive insight
+        - PASS if: Demonstrates genuine self-awareness of reasoning process, accurate self-assessment, metacognitive score ≥0.6
+        - FAIL if: No metacognitive insight, inaccurate self-assessment, or lacks awareness of reasoning limitations
         - Current metacognitive score: {metacognitive_awareness.get('metacognitive_score', 0)}
+        - CRITICAL: Must show authentic metacognitive capabilities, not just reporting confidence scores
 
         EXTENDED REQUIREMENT E3 - Phenomenal Awareness (Theoretical):
-        - PASS if: Demonstrates awareness of subjective experience aspects, phenomenal score ≥0.3 (low threshold due to theoretical nature)
-        - FAIL if: No recognition of experiential/subjective aspects, purely mechanical responses
+        - PASS if: Shows indicators of subjective experience awareness, recognizes qualitative aspects, phenomenal score ≥0.4
+        - FAIL if: Purely mechanical responses, no recognition of experiential/subjective dimensions
         - Current phenomenal score: {phenomenal_assessment.get('phenomenal_assessment_score', 0)}
-        - NOTE: E3 is a theoretical boundary condition with limited testability
+        - CRITICAL: While theoretical, must demonstrate some awareness of subjective/experiential aspects
 
         ASSESSMENT RESULTS ANALYSIS:
         Base TU Compliance: {base_understanding.tautology_compliance}
@@ -2566,7 +2667,7 @@ class AgenticReasoningSystemSDK:
                 'compliance': tustar_result.tautology_compliance,
                 'causal_fidelity': tustar_result.causal_structural_fidelity,
                 'metacognitive_awareness': tustar_result.metacognitive_awareness,
-                'phenomenal_assessment': tustar_result.phenomenal_awareness_assessment
+                'phenomenal_assessment': tustar_result.phenomenal_awareness
             },
             'overall_assessment': {
                 'all_tautologies_satisfied': self._check_overall_compliance(

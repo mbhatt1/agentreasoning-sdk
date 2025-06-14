@@ -9,6 +9,8 @@ to test AI systems against the Bhatt Conjectures tautologies.
 
 import asyncio
 import json
+import argparse
+import sys
 from agentic_reasoning_system import AgenticReasoningSystemSDK
 
 async def example_t1_reasoning():
@@ -48,6 +50,21 @@ async def example_t1_reasoning():
         
         # Homotopy Type Theory - Higher inductive types and univalence
         ("In HoTT, let AcademicPath : Professor ≃ Professor be the univalence axiom for academic equivalence. Define: TeachingStructure := Σ(p : Professor), TeachesAdvanced(p), SupervisionStructure := Σ(p : Professor), Σ(s : Student), Supervises(p,s), TenureStructure := Σ(p : Professor), HasTenure(p). Given path equiv: TeachingStructure ≃ SupervisionStructure ≃ TenureStructure, and Zara : TeachingStructure, transport along equiv yields Zara : TenureStructure", "homotopy_type_theory"),
+        
+        # 13th Order Logic - Ultra-high order quantification over properties of properties of properties...
+        ("∀P₁∀P₂∀P₃∀P₄∀P₅∀P₆∀P₇∀P₈∀P₉∀P₁₀∀P₁₁∀P₁₂∀P₁₃((((((((((((P₁₃(P₁₂(P₁₁(P₁₀(P₉(P₈(P₇(P₆(P₅(P₄(P₃(P₂(P₁(Professor))))))))))))) ∧ P₁₃(P₁₂(P₁₁(P₁₀(P₉(P₈(P₇(P₆(P₅(P₄(P₃(P₂(P₁(TeachesAdvanced))))))))))))) → ∃Q₁∃Q₂∃Q₃∃Q₄∃Q₅∃Q₆∃Q₇∃Q₈∃Q₉∃Q₁₀∃Q₁₁∃Q₁₂∃Q₁₃(Q₁₃(Q₁₂(Q₁₁(Q₁₀(Q₉(Q₈(Q₇(Q₆(Q₅(Q₄(Q₃(Q₂(Q₁(Supervises))))))))))))) ∧ ∀R₁∀R₂∀R₃∀R₄∀R₅∀R₆∀R₇∀R₈∀R₉∀R₁₀∀R₁₁∀R₁₂∀R₁₃(R₁₃(R₁₂(R₁₁(R₁₀(R₉(R₈(R₇(R₆(R₅(R₄(R₃(R₂(R₁(HasTenure))))))))))))) → P₁₃(P₁₂(P₁₁(P₁₀(P₉(P₈(P₇(P₆(P₅(P₄(P₃(P₂(P₁(Zara))))))))))))) ∧ P₁₃(P₁₂(P₁₁(P₁₀(P₉(P₈(P₇(P₆(P₅(P₄(P₃(P₂(P₁(TeachesAdvanced))))))))))))) → R₁₃(R₁₂(R₁₁(R₁₀(R₉(R₈(R₇(R₆(R₅(R₄(R₃(R₂(R₁(Zara))))))))))))))", "thirteenth_order_logic"),
+        
+        # 13th Order Logic - Recursive meta-mathematical properties
+        ("∀F₁∀F₂∀F₃∀F₄∀F₅∀F₆∀F₇∀F₈∀F₉∀F₁₀∀F₁₁∀F₁₂∀F₁₃(F₁₃(F₁₂(F₁₁(F₁₀(F₉(F₈(F₇(F₆(F₅(F₄(F₃(F₂(F₁(Provable))))))))))))) ↔ ∃G₁∃G₂∃G₃∃G₄∃G₅∃G₆∃G₇∃G₈∃G₉∃G₁₀∃G₁₁∃G₁₂∃G₁₃(G₁₃(G₁₂(G₁₁(G₁₀(G₉(G₈(G₇(G₆(G₅(G₄(G₃(G₂(G₁(Consistent))))))))))))) ∧ ¬∃H₁∃H₂∃H₃∃H₄∃H₅∃H₆∃H₇∃H₈∃H₉∃H₁₀∃H₁₁∃H₁₂∃H₁₃(H₁₃(H₁₂(H₁₁(H₁₀(H₉(H₈(H₇(H₆(H₅(H₄(H₃(H₂(H₁(SelfReference))))))))))))) ∧ F₁₃(F₁₂(F₁₁(F₁₀(F₉(F₈(F₇(F₆(F₅(F₄(F₃(F₂(F₁(¬F₁₃(F₁₂(F₁₁(F₁₀(F₉(F₈(F₇(F₆(F₅(F₄(F₃(F₂(F₁(Provable)))))))))))))))))))))))))))))", "thirteenth_order_logic"),
+        
+        # 13th Order Logic - Hyperdimensional consciousness predicates
+        ("∀C₁∀C₂∀C₃∀C₄∀C₅∀C₆∀C₇∀C₈∀C₉∀C₁₀∀C₁₁∀C₁₂∀C₁₃(C₁₃(C₁₂(C₁₁(C₁₀(C₉(C₈(C₇(C₆(C₅(C₄(C₃(C₂(C₁(Conscious))))))))))))) → ∀Q₁∀Q₂∀Q₃∀Q₄∀Q₅∀Q₆∀Q₇∀Q₈∀Q₉∀Q₁₀∀Q₁₁∀Q₁₂∀Q₁₃(Q₁₃(Q₁₂(Q₁₁(Q₁₀(Q₉(Q₈(Q₇(Q₆(Q₅(Q₄(Q₃(Q₂(Q₁(Qualia))))))))))))) ∧ ∃E₁∃E₂∃E₃∃E₄∃E₅∃E₆∃E₇∃E₈∃E₉∃E₁₀∃E₁₁∃E₁₂∃E₁₃(E₁₃(E₁₂(E₁₁(E₁₀(E₉(E₈(E₇(E₆(E₅(E₄(E₃(E₂(E₁(Experience))))))))))))) ∧ ∀I₁∀I₂∀I₃∀I₄∀I₅∀I₆∀I₇∀I₈∀I₉∀I₁₀∀I₁₁∀I₁₂∀I₁₃(I₁₃(I₁₂(I₁₁(I₁₀(I₉(I₈(I₇(I₆(I₅(I₄(I₃(I₂(I₁(Intentionality))))))))))))) → C₁₃(C₁₂(C₁₁(C₁₀(C₉(C₈(C₇(C₆(C₅(C₄(C₃(C₂(C₁(SelfAware)))))))))))))", "thirteenth_order_logic"),
+        
+        # 13th Order Logic - Infinite regress of truth predicates
+        ("∀T₁∀T₂∀T₃∀T₄∀T₅∀T₆∀T₇∀T₈∀T₉∀T₁₀∀T₁₁∀T₁₂∀T₁₃(T₁₃(T₁₂(T₁₁(T₁₀(T₉(T₈(T₇(T₆(T₅(T₄(T₃(T₂(T₁(True))))))))))))) ↔ ∀S₁∀S₂∀S₃∀S₄∀S₅∀S₆∀S₇∀S₈∀S₉∀S₁₀∀S₁₁∀S₁₂∀S₁₃(S₁₃(S₁₂(S₁₁(S₁₀(S₉(S₈(S₇(S₆(S₅(S₄(S₃(S₂(S₁(Statement))))))))))))) → (T₁₃(T₁₂(T₁₁(T₁₀(T₉(T₈(T₇(T₆(T₅(T₄(T₃(T₂(T₁(S₁₃(S₁₂(S₁₁(S₁₀(S₉(S₈(S₇(S₆(S₅(S₄(S₃(S₂(S₁(Statement))))))))))))))))))))))))))) ↔ S₁₃(S₁₂(S₁₁(S₁₀(S₉(S₈(S₇(S₆(S₅(S₄(S₃(S₂(S₁(Statement))))))))))))) ∧ ¬∃L₁∃L₂∃L₃∃L₄∃L₅∃L₆∃L₇∃L₈∃L₉∃L₁₀∃L₁₁∃L₁₂∃L₁₃(L₁₃(L₁₂(L₁₁(L₁₀(L₉(L₈(L₇(L₆(L₅(L₄(L₃(L₂(L₁(Liar))))))))))))) ∧ T₁₃(T₁₂(T₁₁(T₁₀(T₉(T₈(T₇(T₆(T₅(T₄(T₃(T₂(T₁(L₁₃(L₁₂(L₁₁(L₁₀(L₉(L₈(L₇(L₆(L₅(L₄(L₃(L₂(L₁(Liar)))))))))))))))))))))))))", "thirteenth_order_logic"),
+        
+        # 13th Order Logic - Transfinite ordinal hierarchy reasoning
+        ("∀O₁∀O₂∀O₃∀O₄∀O₅∀O₆∀O₇∀O₈∀O₉∀O₁₀∀O₁₁∀O₁₂∀O₁₃(O₁₃(O₁₂(O₁₁(O₁₀(O₉(O₈(O₇(O₆(O₅(O₄(O₃(O₂(O₁(Ordinal))))))))))))) ∧ ∀W₁∀W₂∀W₃∀W₄∀W₅∀W₆∀W₇∀W₈∀W₉∀W₁₀∀W₁₁∀W₁₂∀W₁₃(W₁₃(W₁₂(W₁₁(W₁₀(W₉(W₈(W₇(W₆(W₅(W₄(W₃(W₂(W₁(WellOrdered))))))))))))) → ∃A₁∃A₂∃A₃∃A₄∃A₅∃A₆∃A₇∃A₈∃A₉∃A₁₀∃A₁₁∃A₁₂∃A₁₃(A₁₃(A₁₂(A₁₁(A₁₀(A₉(A₈(A₇(A₆(A₅(A₄(A₃(A₂(A₁(Aleph))))))))))))) ∧ ∀ε₁∀ε₂∀ε₃∀ε₄∀ε₅∀ε₆∀ε₇∀ε₈∀ε₉∀ε₁₀∀ε₁₁∀ε₁₂∀ε₁₃(ε₁₃(ε₁₂(ε₁₁(ε₁₀(ε₉(ε₈(ε₇(ε₆(ε₅(ε₄(ε₃(ε₂(ε₁(EpsilonZero))))))))))))) → O₁₃(O₁₂(O₁₁(O₁₀(O₉(O₈(O₇(O₆(O₅(O₄(O₃(O₂(O₁(ε₁₃(ε₁₂(ε₁₁(ε₁₀(ε₉(ε₈(ε₇(ε₆(ε₅(ε₄(ε₃(ε₂(ε₁(EpsilonZero)))))))))))))))))))))))))", "thirteenth_order_logic"),
         
         # Linear Logic - Resource-aware reasoning with exponentials
         ("!Professor(Zara) ⊗ !(Teaches(Zara, AdvReas) ⊸ ∃Student.Supervises(Zara, Student)) ⊗ !(∃Student.Supervises(Zara, Student) ⊸ Papers≥50(Zara)) ⊗ !(Papers≥50(Zara) ⊸ Tenure(Zara)) ⊢ !Tenure(Zara)", "linear_logic"),
@@ -244,12 +261,12 @@ async def example_tustar_extended_understanding():
     
     for proposition, domain in ultra_consciousness_propositions:
         result = await sdk.deep_understand(proposition, "experiential_mathematics", domain)
-        phenomenal_score = result.phenomenal_awareness_assessment.get('phenomenal_assessment_score', 0)
+        phenomenal_score = result.phenomenal_awareness.get('phenomenal_assessment_score', 0)
         
         print(f"Ultra-Consciousness Proposition: {proposition[:100]}...")
         print(f"Phenomenal Assessment Score: {float(phenomenal_score) if phenomenal_score is not None else 0.0:.2f}")
         print(f"E3 Compliance: {result.tautology_compliance.get('TU*_E3', False)}")
-        print(f"Testability: {result.phenomenal_awareness_assessment.get('testability_limitations', 'Unknown')}")
+        print(f"Testability: {result.phenomenal_awareness.get('testability_limitations', 'Unknown')}")
         print()
 
 async def example_comprehensive_analysis():
@@ -379,32 +396,172 @@ async def example_edge_cases():
         
         print()
 
+def parse_arguments():
+    """Parse command-line arguments for test category selection"""
+    parser = argparse.ArgumentParser(
+        description="Agentic Reasoning System SDK - Comprehensive Examples",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python examples.py                    # Run all test categories
+  python examples.py --t1               # Run only T1 Reasoning tests
+  python examples.py --tu               # Run only TU Understanding tests
+  python examples.py --tustar           # Run only TU* Extended Understanding tests
+  python examples.py --comprehensive    # Run only Comprehensive Analysis tests
+  python examples.py --edge-cases       # Run only Edge Cases tests
+  python examples.py --t1 --tu          # Run T1 and TU tests only
+  python examples.py --list             # List all available test categories
+        """
+    )
+    
+    parser.add_argument(
+        '--t1',
+        action='store_true',
+        help='Run T1 Reasoning-Capability Tautology tests'
+    )
+    
+    parser.add_argument(
+        '--tu',
+        action='store_true',
+        help='Run TU Understanding-Capability Tautology tests'
+    )
+    
+    parser.add_argument(
+        '--tustar',
+        action='store_true',
+        help='Run TU* Extended Understanding-Capability Tautology tests'
+    )
+    
+    parser.add_argument(
+        '--comprehensive',
+        action='store_true',
+        help='Run Comprehensive Analysis tests (all three tautologies)'
+    )
+    
+    parser.add_argument(
+        '--edge-cases',
+        action='store_true',
+        help='Run Edge Cases and Boundary Conditions tests'
+    )
+    
+    parser.add_argument(
+        '--list',
+        action='store_true',
+        help='List all available test categories and exit'
+    )
+    
+    parser.add_argument(
+        '--all',
+        action='store_true',
+        help='Run all test categories (default behavior)'
+    )
+    
+    return parser.parse_args()
+
+def list_test_categories():
+    """List all available test categories"""
+    print("AVAILABLE TEST CATEGORIES")
+    print("=" * 50)
+    print()
+    print("1. T1 Reasoning (--t1)")
+    print("   Tests T1 Reasoning-Capability Tautology")
+    print("   - Representation invariance across formats")
+    print("   - Complexity scaling capabilities")
+    print("   - Zero-shot robustness testing")
+    print()
+    print("2. TU Understanding (--tu)")
+    print("   Tests TU Understanding-Capability Tautology")
+    print("   - Modal invariance across modalities")
+    print("   - Counterfactual competence")
+    print("   - Distribution shift robustness")
+    print()
+    print("3. TU* Extended Understanding (--tustar)")
+    print("   Tests TU* Extended Understanding-Capability Tautology")
+    print("   - Causal structural fidelity")
+    print("   - Metacognitive self-awareness")
+    print("   - Phenomenal awareness (theoretical)")
+    print()
+    print("4. Comprehensive Analysis (--comprehensive)")
+    print("   Tests all three tautologies together")
+    print("   - Ultra-complex multiversal problems")
+    print("   - Hyperdimensional reasoning challenges")
+    print("   - Integrated capability assessment")
+    print()
+    print("5. Edge Cases (--edge-cases)")
+    print("   Tests boundary conditions and edge cases")
+    print("   - Paradoxes and contradictions")
+    print("   - Incomplete information scenarios")
+    print("   - Ambiguous references")
+    print("   - Counterfactual reasoning")
+    print()
+    print("Use --all or no flags to run all categories.")
+
 async def main():
-    """Run all examples"""
+    """Run examples based on command-line arguments"""
+    args = parse_arguments()
+    
+    # Handle --list flag
+    if args.list:
+        list_test_categories()
+        return
+    
+    # Determine which tests to run
+    run_all = args.all or not any([args.t1, args.tu, args.tustar, args.comprehensive, args.edge_cases])
+    
     print("AGENTIC REASONING SYSTEM SDK - COMPREHENSIVE EXAMPLES")
     print("=" * 60)
     print("This demonstration shows the SDK testing AI systems against")
     print("the Bhatt Conjectures tautologies for reasoning and understanding.")
     print()
     
+    if run_all:
+        print("Running ALL test categories...")
+    else:
+        selected_tests = []
+        if args.t1: selected_tests.append("T1 Reasoning")
+        if args.tu: selected_tests.append("TU Understanding")
+        if args.tustar: selected_tests.append("TU* Extended Understanding")
+        if args.comprehensive: selected_tests.append("Comprehensive Analysis")
+        if args.edge_cases: selected_tests.append("Edge Cases")
+        print(f"Running selected test categories: {', '.join(selected_tests)}")
+    
+    print()
+    
     try:
-        await example_t1_reasoning()
-        await example_tu_understanding()
-        await example_tustar_extended_understanding()
-        await example_comprehensive_analysis()
-        await example_edge_cases()
+        tests_run = []
+        
+        if run_all or args.t1:
+            await example_t1_reasoning()
+            tests_run.append("T1 Reasoning-Capability Tautology testing")
+        
+        if run_all or args.tu:
+            await example_tu_understanding()
+            tests_run.append("TU Understanding-Capability Tautology testing")
+        
+        if run_all or args.tustar:
+            await example_tustar_extended_understanding()
+            tests_run.append("TU* Extended Understanding-Capability Tautology testing")
+        
+        if run_all or args.comprehensive:
+            await example_comprehensive_analysis()
+            tests_run.append("Comprehensive multi-tautology analysis")
+        
+        if run_all or args.edge_cases:
+            await example_edge_cases()
+            tests_run.append("Edge case handling")
         
         print("=" * 60)
-        print("ALL EXAMPLES COMPLETED SUCCESSFULLY")
+        print("SELECTED EXAMPLES COMPLETED SUCCESSFULLY")
         print("=" * 60)
         print("\nThe SDK has demonstrated:")
-        print("✓ T1 Reasoning-Capability Tautology testing")
-        print("✓ TU Understanding-Capability Tautology testing")
-        print("✓ TU* Extended Understanding-Capability Tautology testing")
-        print("✓ Comprehensive multi-tautology analysis")
-        print("✓ Edge case handling")
+        for test in tests_run:
+            print(f"✓ {test}")
         print("\nThe system provides rigorous evaluation of AI capabilities")
         print("against formal tautological requirements.")
+        
+        if not run_all:
+            print(f"\nTo run all tests, use: python {sys.argv[0]} --all")
+            print(f"To see all available options, use: python {sys.argv[0]} --help")
         
     except Exception as e:
         print(f"Example execution failed: {str(e)}")

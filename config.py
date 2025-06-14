@@ -107,7 +107,7 @@ PERFORMANCE_CONFIG = {
     "request_timeout": 60,
     "retry_attempts": 3,
     "retry_delay": 1.0,
-    "json_parsing_retries": 4,  # Number of JSON parsing retry attempts
+    "json_parsing_retries": 3,  # Number of JSON parsing retry attempts
     "json_retry_delay": 0.5,    # Delay between JSON parsing retries
     "json_retry_temperature_increment": 0.1,  # Temperature increment for retries (not used with O3)
     "cache_results": False,

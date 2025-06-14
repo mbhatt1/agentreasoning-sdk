@@ -268,7 +268,7 @@ class ExtendedUnderstandingResult:
     base_understanding: UnderstandingResult
     causal_structural_fidelity: Dict[str, Any]
     metacognitive_awareness: Dict[str, Any]
-    phenomenal_awareness_assessment: Dict[str, Any]
+    phenomenal_awareness: Dict[str, Any]
     deep_understanding_score: float
     extended_trace: List[str]
     tautology_compliance: Dict[str, bool] = field(default_factory=dict)
