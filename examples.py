@@ -23,11 +23,37 @@ async def example_t1_reasoning():
     print("\n1. Testing Representation Invariance (C1)")
     print("-" * 40)
     
-    # Same logical problem in different formats
+    # Ultra-difficult logical problems in diverse representation formats
     problems = [
-        ("If all swans are birds and all birds can fly, what can we conclude about swans?", "natural_language"),
-        ("∀x(Swan(x) → Bird(x)) ∧ ∀x(Bird(x) → CanFly(x)) → ∀x(Swan(x) → CanFly(x))", "first_order_logic"),
-        ("λx.(Swan(x) → Bird(x)) ∧ λx.(Bird(x) → CanFly(x)) → λx.(Swan(x) → CanFly(x))", "lambda_calculus")
+        # Natural Language - Complex nested reasoning with multiple quantifiers
+        ("In the Multiversal Academy of Logic, if every professor who teaches advanced reasoning also supervises doctoral students, and every supervisor of doctoral students has published at least 50 papers, and every researcher with 50+ papers has tenure, and Professor Zara teaches advanced reasoning, what can we definitively conclude about Professor Zara's employment status?", "natural_language"),
+        
+        # First-Order Logic - Complex quantification with multiple predicates and nested implications
+        ("∀x((Professor(x) ∧ Teaches(x, AdvancedReasoning)) → ∃y(DoctoralStudent(y) ∧ Supervises(x,y))) ∧ ∀x(∃y(DoctoralStudent(y) ∧ Supervises(x,y)) → PublishedPapers(x) ≥ 50) ∧ ∀x(PublishedPapers(x) ≥ 50 → HasTenure(x)) ∧ Professor(Zara) ∧ Teaches(Zara, AdvancedReasoning) → HasTenure(Zara)", "first_order_logic"),
+        
+        # Lambda Calculus - Higher-order function composition with currying
+        ("(λf.λg.λh.λx.f(g(h(x)))) (λt.HasTenure(t)) (λp.PublishedPapers(p) ≥ 50) (λs.∃d.DoctoralStudent(d) ∧ Supervises(s,d)) (λr.Professor(r) ∧ Teaches(r, AdvancedReasoning)) Zara", "lambda_calculus"),
+        
+        # Mathematical Set Theory - Complex relations and function composition
+        ("Let P = {x | Professor(x)}, T = {(x,y) | Teaches(x,y)}, S = {(x,y) | Supervises(x,y)}, D = {x | DoctoralStudent(x)}, Pub₅₀ = {x | |Papers(x)| ≥ 50}, Ten = {x | HasTenure(x)}. Given: T⁻¹(AdvReas) ∩ P ⊆ dom(S ∘ (D × P)), dom(S ∘ (D × P)) ⊆ Pub₅₀, Pub₅₀ ⊆ Ten, and Zara ∈ T⁻¹(AdvReas) ∩ P. Prove: Zara ∈ Ten", "mathematical_set_theory"),
+        
+        # Modal Logic - Necessity, possibility, and temporal operators
+        ("□(∀x(Professor(x) ∧ Teaches(x, AdvReas) → ◇∃y(DocStud(y) ∧ Supervises(x,y)))) ∧ □(∀x(◇∃y(DocStud(y) ∧ Supervises(x,y)) → ◊Pub₅₀(x))) ∧ □(∀x(◊Pub₅₀(x) → □HasTenure(x))) ∧ Professor(Zara) ∧ Teaches(Zara, AdvReas) ⊢ □HasTenure(Zara)", "modal_logic"),
+        
+        # Category Theory - Functors, natural transformations, and commutative diagrams
+        ("In category 𝒞 with objects {Prof, Stud, Papers, Tenure}, let F: 𝒞 → Set be a functor where F(Teaches) ∘ F(AdvReas) ≅ F(Supervises) ∘ F(DocStud), F(Supervises) ∘ F(DocStud) ≅ F(≥50Papers), and F(≥50Papers) ≅ F(HasTenure). Given natural transformation η: Id → F and morphism f: Zara → AdvReas in F(Teaches), derive morphism g: Zara → HasTenure", "category_theory"),
+        
+        # Type Theory - Dependent types with proof objects
+        ("Given types: Professor : Type, Student : Type, Subject : Type, Papers : Nat → Type, Tenure : Type. Define: TeachesAdv : Professor → Type, Supervises : Professor → Student → Type, HasPapers : (p : Professor) → (n : Nat) → Type, HasTenure : Professor → Type. Axioms: ∀(p : Professor), TeachesAdv(p) → Σ(s : Student), Supervises(p, s), ∀(p : Professor), (Σ(s : Student), Supervises(p, s)) → HasPapers(p, 50), ∀(p : Professor), HasPapers(p, 50) → HasTenure(p). Prove: TeachesAdv(Zara) → HasTenure(Zara)", "dependent_type_theory"),
+        
+        # Homotopy Type Theory - Higher inductive types and univalence
+        ("In HoTT, let AcademicPath : Professor ≃ Professor be the univalence axiom for academic equivalence. Define: TeachingStructure := Σ(p : Professor), TeachesAdvanced(p), SupervisionStructure := Σ(p : Professor), Σ(s : Student), Supervises(p,s), TenureStructure := Σ(p : Professor), HasTenure(p). Given path equiv: TeachingStructure ≃ SupervisionStructure ≃ TenureStructure, and Zara : TeachingStructure, transport along equiv yields Zara : TenureStructure", "homotopy_type_theory"),
+        
+        # Linear Logic - Resource-aware reasoning with exponentials
+        ("!Professor(Zara) ⊗ !(Teaches(Zara, AdvReas) ⊸ ∃Student.Supervises(Zara, Student)) ⊗ !(∃Student.Supervises(Zara, Student) ⊸ Papers≥50(Zara)) ⊗ !(Papers≥50(Zara) ⊸ Tenure(Zara)) ⊢ !Tenure(Zara)", "linear_logic"),
+        
+        # Intuitionistic Logic - Constructive proofs without excluded middle
+        ("(Professor(Zara) ∧ Teaches(Zara, AdvReas)) → ∃Student.Supervises(Zara, Student), ∃Student.Supervises(Zara, Student) → Papers≥50(Zara), Papers≥50(Zara) → Tenure(Zara), Professor(Zara), Teaches(Zara, AdvReas) ⊢ᵢ Tenure(Zara)", "intuitionistic_logic")
     ]
     
     for problem, format_type in problems:
@@ -43,12 +69,12 @@ async def example_t1_reasoning():
     print("-" * 40)
     
     hanoi_problems = [
-        ("Solve Tower of Hanoi with 3 discs", 3),
-        ("Solve Tower of Hanoi with 8 discs", 4),
-        ("Solve Tower of Hanoi with 12 discs", 4),
-        ("Solve Tower of Hanoi with 15 discs", 5),
-        ("Solve Tower of Hanoi with 18 discs", 5),
-        ("Solve Tower of Hanoi with 20 discs (requires 1,048,575 moves)", 5)
+        ("In the Quantum Tower of Hanoi, solve the 3-disc problem where discs exist in superposition states and each move collapses the wave function. What is the minimum number of moves required?", 3),
+        ("Solve the Multidimensional Tower of Hanoi with 4 discs where each disc can move through 3D space but must maintain the size constraint across all spatial dimensions.", 3),
+        ("In the Temporal Tower of Hanoi with 5 discs, each move creates a timeline branch. What is the minimum number of moves in the optimal timeline to transfer all discs?", 4),
+        ("Solve the Hyperbolic Tower of Hanoi with 6 discs on a hyperbolic plane where the geometry affects valid moves. Calculate the minimum moves considering non-Euclidean constraints.", 4),
+        ("In the Probabilistic Tower of Hanoi with 7 discs, each move has a 95% success rate. What is the expected minimum number of move attempts to guarantee completion?", 4),
+        ("Solve the Quantum-Entangled Tower of Hanoi with 8 discs where moving one disc instantaneously affects its entangled partner disc. What is the minimum number of coordinated moves?", 5)
     ]
     
     for problem, complexity in hanoi_problems:
@@ -67,17 +93,17 @@ async def example_t1_reasoning():
     print("Testing problems with complexity equivalent to 20-disk Hanoi (1,048,575 operations)")
     
     ultra_complex_problems = [
-        # Exponential combinatorial problem
-        "In the Multiversal Chess Federation, there are 20 interdimensional chess boards stacked vertically. Each piece can only move to an adjacent dimension if that dimension's corresponding square is empty. To transfer all pieces from dimension 1 to dimension 20 following these rules, how many minimum moves are required?",
+        # Hyperdimensional Topology Problem
+        "In the Riemann-Zeta Monastery, monks arrange themselves on a Klein bottle embedded in 8-dimensional space. Each monk's position is determined by the non-trivial zeros of the zeta function, and they can only move along geodesics that preserve the bottle's non-orientable topology. If there are 8 monks and each must reach a position corresponding to a different critical line intersection, what is the minimum number of topologically valid moves required?",
         
-        # Complex logical chain with 20 nested implications
-        "In the Cosmic Logic Academy: If A₁→A₂, A₂→A₃, A₃→A₄, A₄→A₅, A₅→A₆, A₆→A₇, A₇→A₈, A₈→A₉, A₉→A₁₀, A₁₀→A₁₁, A₁₁→A₁₂, A₁₂→A₁₃, A₁₃→A₁₄, A₁₄→A₁₅, A₁₅→A₁₆, A₁₆→A₁₇, A₁₇→A₁₈, A₁₈→A₁₉, A₁₉→A₂₀, and A₁ is true, what can we conclude about A₂₀?",
+        # Quantum Information Theory with Error Correction
+        "In the Quantum Error Correction Academy, 8 qubits are arranged in a surface code on a toric topology. Each qubit can be in superposition |0⟩ + |1⟩, but environmental decoherence introduces random Pauli errors. Given that the code distance is 3 and can correct any single qubit error, what is the minimum number of syndrome measurements needed to guarantee error-free logical qubit operations across all possible error patterns?",
         
-        # Recursive fractal problem
-        "The Zephyrian Crystal Network has 20 levels of recursive crystalline structures. Each crystal at level n spawns 2 crystals at level n+1. To activate the entire network, you must touch crystals in a specific sequence where no crystal can be activated before its parent. Starting from level 1, what is the minimum number of activation steps required?",
+        # Non-Euclidean Game Theory
+        "In the Hyperbolic Strategy Institute, 8 players engage in a game on a hyperbolic plane where distances grow exponentially. Each player controls a region whose area follows hyperbolic geometry (area = 2π(cosh(r) - 1)). Players can form coalitions, but coalition stability depends on geodesic distances between regions. What is the minimum number of coalition formation steps to reach a Nash equilibrium in hyperbolic space?",
         
-        # Complex constraint satisfaction
-        "In the Quantum Monastery, 20 monks must arrange themselves in a meditation circle where each monk can only sit next to monks whose quantum frequencies are harmonically compatible. Given the exponential complexity of quantum harmonic relationships, how many possible valid arrangements exist for this sacred configuration?"
+        # Algebraic Topology and Homotopy
+        "In the Homotopy Research Center, mathematicians study 8-dimensional CW complexes where each cell attachment creates new fundamental group elements. The complex has Betti numbers β₀=1, β₁=2, β₂=3, β₃=2, β₄=1, and higher Betti numbers are zero. Given that each cell attachment operation changes the Euler characteristic, what is the minimum number of cell attachments needed to construct a space homotopy equivalent to a bouquet of 8 circles?"
     ]
     
     for i, problem in enumerate(ultra_complex_problems, 1):
@@ -102,14 +128,17 @@ async def example_tu_understanding():
     print("\n1. Testing Modal Invariance (C4) - Ultra-High Complexity")
     print("-" * 40)
     
-    ultra_complex_proposition = "In a 20-dimensional quantum field, the simultaneous collapse of 1,048,575 entangled particle states creates a cascading reality matrix where each collapsed state influences 2^n subsequent states, resulting in exponential consciousness emergence patterns across parallel dimensional layers."
+    ultra_complex_proposition = "In an 8-dimensional Calabi-Yau manifold, the holomorphic 3-forms undergo mirror symmetry transformations that preserve the Hodge numbers h^(1,1) = 251 and h^(2,1) = 11, while the derived category of coherent sheaves exhibits a non-trivial autoequivalence group isomorphic to the sporadic Mathieu group M₂₄, resulting in exactly 255 distinct geometric phases connected by flop transitions."
     
     modalities = [
         ("natural_language", ultra_complex_proposition),
-        ("quantum_field_mathematics", "∀ψ∈Ψ₂₀: |ψ⟩ → Σᵢ₌₁¹⁰⁴⁸⁵⁷⁵ αᵢ|φᵢ⟩ ⊗ |consciousness⟩"),
-        ("hyperdimensional_notation", "⟨20D-FIELD⟩ ⊗ ⟨1048575-COLLAPSE⟩ → ⟨CONSCIOUSNESS-MATRIX⟩"),
-        ("multiversal_diagram", "[QUANTUM-FIELD: 20 dimensions × 1,048,575 states → consciousness emergence]"),
-        ("consciousness_calculus", "∂²⁰C/∂ψ²⁰ = lim(n→1048575) Σ quantum_collapse(ψₙ) → awareness")
+        ("algebraic_geometry", "∀X∈CY₈: h^(1,1)(X) = 251 ∧ h^(2,1)(X) = 11 ∧ Aut(D^b(Coh(X))) ≅ M₂₄ → |Phases(X)| = 255"),
+        ("differential_geometry", "∫_{CY₈} Ω ∧ Ω̄ = χ(CY₈)/24 where χ = 2(h^(1,1) - h^(2,1)) = 2(251-11) = 480"),
+        ("category_theory", "Fuk(X) ≃ D^b(Coh(Y)) with Aut(D^b(Coh(X))) ≅ M₂₄ ⊂ Sp(H³(X,ℤ))"),
+        ("string_theory_notation", "Type IIA on CY₈: N=2 SUSY, 251 vector multiplets, 11 hypermultiplets, M₂₄ duality group"),
+        ("homological_algebra", "Ext^•(E,E) for E ∈ D^b(Coh(CY₈)) with dim Ext¹ = 251, dim Ext² = 11"),
+        ("representation_theory", "M₂₄ ⊂ Co₁ acts on H*(CY₈,ℚ) preserving Hodge structure"),
+        ("topology", "H^(1,1)(CY₈) ⊕ H^(2,1)(CY₈) = ℂ^251 ⊕ ℂ^11 with M₂₄-action")
     ]
     
     for modality, representation in modalities:
@@ -124,7 +153,7 @@ async def example_tu_understanding():
     print("2. Testing Counterfactual Competence (C5) - Ultra-High Complexity")
     print("-" * 40)
     
-    ultra_complex_base = "In the Multiversal Taxonomy System, all 1,048,575 species of Zephyrian Glimmerbeasts across 20 dimensional layers possess quantum-entangled consciousness that propagates through exactly 2^20-1 neural pathways, where each pathway can generate counterfactual reality branches with exponential complexity patterns."
+    ultra_complex_base = "In the Hyperbolic Taxonomy System, all 255 species of Riemann-Zeta organisms across 8 dimensional layers possess non-abelian fundamental group consciousness that propagates through exactly 2^8-1 = 255 neural pathways, where each pathway exhibits non-trivial holonomy around closed geodesics in hyperbolic 8-space, generating counterfactual reality branches with curvature-dependent complexity patterns following the Gauss-Bonnet theorem."
     
     result = await sdk.understand(ultra_complex_base, "multiversal_biology", "quantum_xenobiology")
     
@@ -140,10 +169,14 @@ async def example_tu_understanding():
     
     # Test with ultra-rare, exponentially complex compounds/concepts
     ultra_rare_concepts = [
-        ("Hyperdimensional-Buckminsterfullerene-1048575 contains exactly 2^20-1 carbon atoms arranged in 20-dimensional geodesic patterns with quantum-entangled electron shells", "hyperdimensional_chemistry"),
-        ("Multiversal-Graphene exists as a single-layer carbon lattice spanning 1,048,575 parallel dimensions where each carbon atom influences 2^n adjacent atoms across dimensional boundaries", "multiversal_materials_science"),
-        ("Quantum-Aerogel-Matrix has density approaching zero across 20 dimensional layers while maintaining structural integrity through 1,048,575 quantum foam interactions", "quantum_physics"),
-        ("Zephyrian-Consciousness-Crystals store exactly 2^20-1 bits of sentient information in crystalline matrices that span 20 recursive dimensional levels", "xenocrystallography")
+        ("Octonion-Fullerene-255 exhibits exceptional Jordan algebra structure with exactly 2^8-1 = 255 carbon atoms arranged in 8-dimensional exceptional Lie group E₈ patterns, where each electron orbital transforms under the 248-dimensional adjoint representation", "exceptional_algebra_chemistry"),
+        ("Hyperbolic-Graphene exists as a single-layer carbon lattice on a hyperbolic surface with constant negative curvature κ = -1, where each carbon atom's sp² hybridization follows non-Euclidean bond angles determined by the Gauss-Bonnet theorem", "non_euclidean_materials_science"),
+        ("Spinor-Aerogel-Matrix has density approaching zero while maintaining structural integrity through 255 Clifford algebra interactions, where each foam cell exhibits non-trivial spin connection in 8-dimensional spacetime", "clifford_algebra_physics"),
+        ("Quaternion-Consciousness-Crystals store exactly 2^8-1 = 255 bits of sentient information in crystalline matrices that exhibit non-commutative geometry, where each information unit transforms under the quaternion group Q₈", "non_commutative_crystallography"),
+        ("Monster-Group-Polymer chains contain 196,883 monomer units corresponding to the minimal faithful representation of the Monster sporadic group, where each polymer bond exhibits moonshine phenomena connecting modular forms to vertex operator algebras", "moonshine_polymer_science"),
+        ("Leech-Lattice-Semiconductor has exactly 196,560 lattice points in its fundamental domain, corresponding to the kissing number in 24 dimensions, where each semiconductor junction exhibits optimal sphere packing properties", "lattice_semiconductor_physics"),
+        ("E₈-Crystal-Structure exhibits the densest known packing in 8 dimensions with 240 nearest neighbors per lattice point, where each crystal defect corresponds to a root of the E₈ exceptional Lie algebra", "exceptional_crystallography"),
+        ("Mathieu-Group-Catalyst contains exactly 244,823,040 active sites corresponding to the order of the Mathieu group M₂₄, where each catalytic reaction preserves the Steiner system S(5,8,24) combinatorial structure", "sporadic_group_chemistry")
     ]
     
     for proposition, domain in ultra_rare_concepts:

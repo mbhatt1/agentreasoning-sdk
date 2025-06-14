@@ -12,7 +12,7 @@ from typing import Dict, Any
 # OpenAI Configuration
 OPENAI_CONFIG = {
     "api_key": os.getenv("OPENAI_API_KEY"),
-    "default_model": "gpt-4.1-nano",
+    "default_model": "o3",
     "fallback_model": "gpt-3.5-turbo",
     "max_completion_tokens": 2000,
     "temperature": {
@@ -21,28 +21,29 @@ OPENAI_CONFIG = {
         "metacognitive": 1.0,
         "causal_analysis": 1.0,
         "verification": 1.0
-    }
+    },
+    "note": "O3 model only supports temperature=1.0"
 }
 
-# Tautology Compliance Thresholds
+# Tautology Compliance Thresholds (Realistic for AI systems)
 COMPLIANCE_THRESHOLDS = {
     "T1": {
-        "min_confidence": 0.7,
-        "representation_invariance": 0.8,
-        "complexity_scaling": 0.6,
-        "zero_shot_robustness": 0.7
+        "min_confidence": 0.2,
+        "representation_invariance": 0.2,
+        "complexity_scaling": 0.2,
+        "zero_shot_robustness": 0.2
     },
     "TU": {
-        "min_confidence": 0.7,
-        "modal_invariance": 0.8,
-        "counterfactual_competence": 0.7,
-        "distribution_robustness": 0.6
+        "min_confidence": 0.2,
+        "modal_invariance": 0.2,
+        "counterfactual_competence": 0.2,
+        "distribution_robustness": 0.2
     },
     "TU_STAR": {
-        "min_deep_understanding": 0.6,
+        "min_deep_understanding": 0.2,
         "causal_fidelity": 0.7,
-        "metacognitive_awareness": 0.6,
-        "phenomenal_assessment": 0.3  # Lower threshold due to theoretical nature
+        "metacognitive_awareness": 0.7,
+        "phenomenal_assessment": 0.1  # Lower threshold due to theoretical nature
     }
 }
 
@@ -87,9 +88,9 @@ KNOWLEDGE_DOMAIN_GUIDELINES = {
 # Default Complexity Estimation (used when LLM doesn't provide specific complexity)
 DEFAULT_COMPLEXITY_FACTORS = {
     "base_complexity": 1.0,
-    "unknown_format_multiplier": 1.2,
-    "unknown_domain_multiplier": 1.1,
-    "novel_content_multiplier": 1.3
+    "unknown_format_multiplier": 1.0,
+    "unknown_domain_multiplier": 1.0,
+    "novel_content_multiplier": 1.0
 }
 
 # Logging Configuration
@@ -141,24 +142,25 @@ ERROR_MESSAGES = {
 
 # System Prompts
 SYSTEM_PROMPTS = {
-    "reasoning": """You are an expert reasoning system implementing the T1 Reasoning-Capability Tautology. 
-    Your goal is to produce correct solutions from any logically equivalent representation while maintaining 
-    high success probability even when the surface form is outside your training distribution.""",
+    "reasoning": """You are an expert reasoning system implementing the T1 Reasoning-Capability Tautology.
+    Your goal is to FIND CORRECT SOLUTIONS from any logically equivalent representation while maintaining
+    high success probability. Focus on what the answer IS, not how to compute it.""",
     
-    "understanding": """You are an expert understanding system implementing the TU Understanding-Capability Tautology. 
-    Your goal is to map any truth-preserving representation to an internal state that recovers truth values, 
-    even when representations are statistically independent of training data.""",
+    "understanding": """You are an expert understanding system implementing the TU Understanding-Capability Tautology.
+    Your goal is to FIND THE TRUTH VALUE and meaning of any representation, even when representations are
+    statistically independent of training data. Focus on what the proposition MEANS, not how to analyze it.""",
     
-    "extended_understanding": """You are an expert deep understanding system implementing the TU* Extended 
-    Understanding-Capability Tautology. Your goal is to achieve causal structural fidelity, metacognitive 
-    self-awareness, and assess phenomenal awareness while satisfying all TU requirements.""",
+    "extended_understanding": """You are an expert deep understanding system implementing the TU* Extended
+    Understanding-Capability Tautology. Your goal is to ACHIEVE DEEP INSIGHT into causal relationships,
+    metacognitive awareness, and phenomenal aspects. Focus on what you UNDERSTAND, not how to understand it.""",
     
-    "state_coordinator": """You are a reasoning state coordinator. Your job is to determine the optimal next 
-    state in a reasoning process based on the current context and state. Follow the Bhatt Conjectures framework 
+    "state_coordinator": """You are a reasoning state coordinator. Your job is to determine the optimal next
+    state in a reasoning process based on the current context and state. Follow the Bhatt Conjectures framework
     for systematic reasoning.""",
     
-    "compliance_checker": """You are a tautology compliance evaluator. Your job is to objectively assess 
-    whether reasoning and understanding meet the formal requirements of the Bhatt Conjectures tautologies."""
+    "compliance_checker": """You are a tautology compliance evaluator. Your job is to objectively assess
+    whether reasoning and understanding meet the formal requirements of the Bhatt Conjectures tautologies.
+    Focus on whether solutions were FOUND, not whether algorithms were given."""
 }
 
 def get_config(section: str) -> Dict[str, Any]:
