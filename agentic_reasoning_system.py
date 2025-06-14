@@ -141,7 +141,6 @@ class LLMInterface:
         
         json_prompt = f"{prompt}\n\nIMPORTANT: Respond with valid JSON only. Start with {{ and end with }}. No additional text."
         
-<<<<<<< HEAD
         # Multiple parsing strategies for robust JSON parsing
         parsing_strategies = [
             # Strategy 1: Try parsing response as-is (most common case)
@@ -169,55 +168,6 @@ class LLMInterface:
         # Final fallback: return a structured error response
         logger.error(f"All JSON parsing strategies failed for response: {response[:500]}...")
         return self._create_fallback_response(response)
-=======
-        for retry_attempt in range(max_retries + 1):
-            current_temp = temperature + (retry_attempt * temp_increment)
-            
-            try:
-                response = await self.query(json_prompt, system_prompt, current_temp)
-                
-                # Multiple parsing strategies for o3 model compatibility
-                parsing_strategies = [
-                    # Strategy 1: Extract first complete JSON object
-                    lambda r: self._extract_json_object(r),
-                    # Strategy 2: Clean and parse entire response
-                    lambda r: json.loads(self._clean_json_response(r)),
-                    # Strategy 3: Try parsing response as-is
-                    lambda r: json.loads(r.strip()),
-                    # Strategy 4: Extract content between code blocks
-                    lambda r: self._extract_from_code_blocks(r),
-                ]
-                
-                for i, strategy in enumerate(parsing_strategies):
-                    try:
-                        result = strategy(response)
-                        if isinstance(result, dict):
-                            if retry_attempt > 0:
-                                logger.info(f"JSON parsing succeeded on retry {retry_attempt}")
-                            return result
-                    except (json.JSONDecodeError, ValueError, AttributeError) as e:
-                        logger.debug(f"JSON parsing strategy {i+1} failed: {str(e)}")
-                        continue
-                
-                # If we get here, all strategies failed for this attempt
-                if retry_attempt < max_retries:
-                    logger.warning(f"JSON parsing failed on attempt {retry_attempt + 1}, retrying with temperature {current_temp + temp_increment}")
-                    await asyncio.sleep(retry_delay)
-                    continue
-                
-            except Exception as e:
-                logger.error(f"Query failed on attempt {retry_attempt + 1}: {str(e)}")
-                if retry_attempt < max_retries:
-                    await asyncio.sleep(retry_delay)
-                    continue
-                else:
-                    # Final attempt failed, create fallback
-                    return self._create_fallback_response(f"Query failed: {str(e)}")
-        
-        # Final fallback: return a structured error response
-        logger.error(f"All JSON parsing attempts failed after {max_retries + 1} tries")
-        return self._create_fallback_response("All parsing attempts failed")
->>>>>>> 3b4e025 (Reasoning works)
     
     def _extract_json_object(self, response: str) -> Dict[str, Any]:
         """Extract the first complete JSON object from response"""
