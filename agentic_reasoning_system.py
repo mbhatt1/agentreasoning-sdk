@@ -23,7 +23,6 @@ import logging
 import openai
 import os
 from collections import defaultdict
-from config import PERFORMANCE_CONFIG, COMPLIANCE_THRESHOLDS, STATE_MACHINE_CONFIG, VALIDATION_RULES
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,8 +34,6 @@ class ReasoningMode(Enum):
     SLOW_DELIBERATIVE = "slow_deliberative"
     METACOGNITIVE = "metacognitive"
     CAUSAL = "causal"
-    HYBRID_ADAPTIVE = "hybrid_adaptive"  # New: Dynamic switching between fast/slow
-    ULTRA_COMPLEX = "ultra_complex"      # New: For 20-disk Hanoi level problems
 
 class ReasoningState(Enum):
     """States in the reasoning state machine"""
@@ -62,10 +59,6 @@ class ReasoningContext:
     uncertainty_threshold: float = 0.7
     requires_causal_analysis: bool = False
     requires_metacognition: bool = True
-    hanoi_disc_count: int = 0  # New: Track Tower of Hanoi complexity
-    exponential_operations: int = 0  # New: Track exponential complexity (2^n operations)
-    is_ultra_complex: bool = False  # New: Flag for 20-disk level problems
-    fast_slow_switching_enabled: bool = True  # New: Enable dynamic mode switching
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
@@ -134,12 +127,9 @@ class LLMInterface:
             raise
     
     async def query_json(self, prompt: str, system_prompt: str = "", temperature: float = 1.0) -> Dict[str, Any]:
-        """Query LLM and expect JSON response with robust parsing and retry logic"""
-        max_retries = PERFORMANCE_CONFIG.get('json_parsing_retries', 2)
-        temp_increment = PERFORMANCE_CONFIG.get('json_retry_temperature_increment', 0.2)
-        retry_delay = PERFORMANCE_CONFIG.get('json_retry_delay', 0.2)
-        
+        """Query LLM and expect JSON response with robust parsing"""
         json_prompt = f"{prompt}\n\nIMPORTANT: Respond with valid JSON only. Start with {{ and end with }}. No additional text."
+        response = await self.query(json_prompt, system_prompt, temperature)
         
         # Multiple parsing strategies for robust JSON parsing
         parsing_strategies = [
@@ -317,94 +307,49 @@ class ReasoningStateMachine:
         self.context: Dict[str, Any] = {}
         
     async def transition_to_next_state(self, context: Dict[str, Any]) -> ReasoningState:
-        """Subconscious-like state machine - fast, intuitive decisions with loop prevention"""
+        """Determine next state based on current context"""
         
-        # CRITICAL: Prevent GENERATING_RESPONSE loops - transition to verification
-        if self.current_state == ReasoningState.GENERATING_RESPONSE:
-            self.state_history.append(self.current_state)
-            self.current_state = ReasoningState.SELF_VERIFICATION
-            logger.info(f"Auto-transition to verification: {self.state_history[-1]} -> {self.current_state}")
-            return ReasoningState.SELF_VERIFICATION
+        transition_prompt = f"""
+        Current reasoning state: {self.current_state}
+        Context: {json.dumps(context, indent=2)}
         
-        # Prevent infinite loops by checking state history
-        if len(self.state_history) >= 2:
-            # If we've been in the same state twice, force completion
-            if self.state_history[-1] == self.current_state:
-                self.state_history.append(self.current_state)
-                self.current_state = ReasoningState.COMPLETE
-                logger.info(f"Loop prevention - force complete: {self.state_history[-1]} -> {self.current_state}")
-                return ReasoningState.COMPLETE
+        Based on the current state and context, determine the next appropriate state for reasoning.
+        Consider:
+        - Complexity level: {context.get('complexity_level', 3)}
+        - Confidence level: {context.get('confidence', 0.5)}
+        - Requires causal analysis: {context.get('requires_causal_analysis', False)}
+        - Requires metacognition: {context.get('requires_metacognition', True)}
+        - Current processing results: {context.get('processing_complete', False)}
         
-        # Simplified context for subconscious-like processing
-        simple_context = {
-            "current_state": self.current_state.value,
-            "confidence": self._safe_float(context.get('confidence', 0.7)),
-            "complexity": self._safe_int(context.get('complexity_level', 3)),
-            "has_solution": bool(context.get('fast_solution') or context.get('slow_solution') or context.get('final_solution')),
-            "processing_complete": context.get('processing_complete', False)
-        }
+        Available states: {[state.value for state in ReasoningState]}
         
-        # Hard-coded transitions for reliability (subconscious-like)
-        if self.current_state == ReasoningState.IDLE:
-            next_state = ReasoningState.PARSING_INPUT
-        elif self.current_state == ReasoningState.PARSING_INPUT:
-            next_state = ReasoningState.REPRESENTATION_MAPPING
-        elif self.current_state == ReasoningState.REPRESENTATION_MAPPING:
-            next_state = ReasoningState.FAST_PROCESSING
-        elif self.current_state == ReasoningState.FAST_PROCESSING:
-            # If we have a solution with good confidence, skip slow processing
-            if simple_context['has_solution'] and simple_context['confidence'] > 0.6:
-                next_state = ReasoningState.GENERATING_RESPONSE
-            else:
-                next_state = ReasoningState.SLOW_PROCESSING
-        elif self.current_state == ReasoningState.SLOW_PROCESSING:
-            # After slow processing, check if causal analysis is needed
-            requires_causal = context.get('requires_causal_analysis', False)
-            if requires_causal:
-                next_state = ReasoningState.CAUSAL_ANALYSIS
-            elif simple_context['complexity'] >= 4:
-                next_state = ReasoningState.METACOGNITIVE_EVALUATION
-            else:
-                next_state = ReasoningState.GENERATING_RESPONSE
-        elif self.current_state == ReasoningState.CAUSAL_ANALYSIS:
-            # After causal analysis, do metacognitive evaluation for complex problems
-            if simple_context['complexity'] >= 4:
-                next_state = ReasoningState.METACOGNITIVE_EVALUATION
-            else:
-                next_state = ReasoningState.GENERATING_RESPONSE
-        elif self.current_state == ReasoningState.METACOGNITIVE_EVALUATION:
-            next_state = ReasoningState.GENERATING_RESPONSE
-        elif self.current_state == ReasoningState.CAUSAL_ANALYSIS:
-            next_state = ReasoningState.GENERATING_RESPONSE
-        elif self.current_state == ReasoningState.SELF_VERIFICATION:
-            next_state = ReasoningState.COMPLETE
-        else:
-            # Any other state goes to complete
-            next_state = ReasoningState.COMPLETE
+        Return the next state as a JSON object: {{"next_state": "state_name", "reason": "explanation"}}
+        """
         
-        # Check for error conditions
-        if context.get('error_occurred', False) or context.get('parsing_error', False):
-            next_state = ReasoningState.ERROR
+        system_prompt = """You are a reasoning state coordinator. Your job is to determine the optimal next state 
+        in a reasoning process based on the current context and state. Follow the Bhatt Conjectures framework 
+        for systematic reasoning."""
         
-        # Update state
-        self.state_history.append(self.current_state)
-        self.current_state = next_state
-        logger.info(f"Subconscious transition: {self.state_history[-1]} -> {self.current_state}")
-        return next_state
-    
-    def _safe_float(self, value, default=0.0):
-        """Safely convert value to float"""
         try:
-            return float(value) if value is not None else default
-        except (ValueError, TypeError):
-            return default
-    
-    def _safe_int(self, value, default=0):
-        """Safely convert value to int"""
-        try:
-            return int(value) if value is not None else default
-        except (ValueError, TypeError):
-            return default
+            response = await self.llm.query_json(transition_prompt, system_prompt)
+            next_state_name = response.get('next_state', 'error')
+            
+            # Convert string to enum
+            for state in ReasoningState:
+                if state.value == next_state_name:
+                    self.state_history.append(self.current_state)
+                    self.current_state = state
+                    logger.info(f"State transition: {self.state_history[-1]} -> {self.current_state}")
+                    return state
+            
+            # Fallback to error state
+            self.current_state = ReasoningState.ERROR
+            return ReasoningState.ERROR
+            
+        except Exception as e:
+            logger.error(f"State transition failed: {str(e)}")
+            self.current_state = ReasoningState.ERROR
+            return ReasoningState.ERROR
     
     def reset(self):
         """Reset state machine"""
@@ -412,135 +357,12 @@ class ReasoningStateMachine:
         self.state_history.clear()
         self.context.clear()
 
-class UltraComplexityHandler:
-    """Handler for ultra-high complexity problems (20-disk Hanoi level)"""
-    
-    def __init__(self, llm: LLMInterface):
-        self.llm = llm
-        self.max_hanoi_discs = 20
-        self.max_operations = 2**20 - 1  # 1,048,575 operations
-    
-    def detect_ultra_complexity(self, problem: str, domain: str) -> Dict[str, Any]:
-        """Detect if problem requires ultra-high complexity handling"""
-        
-        complexity_indicators = [
-            "20-disk", "1,048,575", "2^20", "exponential", "ultra-complex",
-            "maximum complexity", "theoretical maximum", "hanoi", "tower",
-            "hyperdimensional", "multiversal", "quantum", "parallel dimensions"
-        ]
-        
-        problem_lower = problem.lower()
-        domain_lower = domain.lower()
-        
-        # Check for explicit complexity indicators
-        has_complexity_indicators = any(indicator in problem_lower or indicator in domain_lower
-                                      for indicator in complexity_indicators)
-        
-        # Estimate operations count from problem description
-        estimated_operations = self._estimate_operations_count(problem)
-        
-        # Check for Hanoi-specific patterns
-        hanoi_disc_count = self._extract_hanoi_disc_count(problem)
-        
-        return {
-            'is_ultra_complex': has_complexity_indicators or estimated_operations > 100000 or hanoi_disc_count >= 15,
-            'estimated_operations': estimated_operations,
-            'hanoi_disc_count': hanoi_disc_count,
-            'complexity_level': 5 if has_complexity_indicators else min(5, max(1, int(estimated_operations / 200000) + 1)),
-            'requires_exponential_handling': estimated_operations > 50000 or hanoi_disc_count >= 10
-        }
-    
-    def _estimate_operations_count(self, problem: str) -> int:
-        """Estimate the number of operations required for the problem"""
-        import re
-        
-        # Look for explicit operation counts
-        operation_patterns = [
-            r'(\d{1,3}(?:,\d{3})*)\s*operations?',
-            r'2\^(\d+)',
-            r'(\d+)-disk',
-            r'(\d+)\s*parallel\s*dimensions?'
-        ]
-        
-        max_operations = 0
-        
-        for pattern in operation_patterns:
-            matches = re.findall(pattern, problem, re.IGNORECASE)
-            for match in matches:
-                try:
-                    if ',' in str(match):
-                        # Handle comma-separated numbers like "1,048,575"
-                        num = int(str(match).replace(',', ''))
-                    elif 'disk' in pattern:
-                        # Handle disk count - convert to operations (2^n - 1)
-                        num = 2**int(match) - 1 if int(match) <= 20 else 1048575
-                    elif '2^' in pattern:
-                        # Handle exponential notation
-                        num = 2**int(match) if int(match) <= 20 else 1048575
-                    else:
-                        num = int(match)
-                    
-                    max_operations = max(max_operations, num)
-                except (ValueError, OverflowError):
-                    continue
-        
-        return max_operations
-    
-    def _extract_hanoi_disc_count(self, problem: str) -> int:
-        """Extract Tower of Hanoi disc count from problem description"""
-        import re
-        
-        hanoi_patterns = [
-            r'(\d+)-disk.*hanoi',
-            r'hanoi.*(\d+).*disk',
-            r'tower.*(\d+).*disk',
-            r'(\d+).*disc.*tower'
-        ]
-        
-        for pattern in hanoi_patterns:
-            matches = re.findall(pattern, problem, re.IGNORECASE)
-            if matches:
-                try:
-                    return int(matches[0])
-                except ValueError:
-                    continue
-        
-        return 0
-    
-    async def generate_ultra_complex_problem(self, base_problem: str, target_complexity: int = 20) -> str:
-        """Generate an ultra-complex version of a problem"""
-        
-        ultra_prompt = f"""
-        Transform this problem into an ultra-high complexity version equivalent to a {target_complexity}-disk Tower of Hanoi problem:
-        
-        Original Problem: {base_problem}
-        Target Complexity: {2**target_complexity - 1:,} operations
-        
-        Create a version that:
-        1. Maintains the logical structure of the original problem
-        2. Scales to {target_complexity}-disk Hanoi complexity level
-        3. Involves {2**target_complexity - 1:,} parallel operations or dimensions
-        4. Uses hyperdimensional or multiversal concepts where appropriate
-        5. Preserves the core reasoning requirements
-        
-        Return the ultra-complex problem statement.
-        """
-        
-        try:
-            response = await self.llm.query(ultra_prompt,
-                "You are an expert at scaling problems to ultra-high complexity while preserving logical structure.")
-            return response.strip()
-        except Exception as e:
-            # Fallback: create a basic ultra-complex version
-            return f"Across {2**target_complexity - 1:,} parallel logical dimensions, {base_problem}"
-
 class T1ReasoningEngine:
     """T1: Reasoning-Capability Tautology Implementation"""
     
     def __init__(self, llm: LLMInterface):
         self.llm = llm
         self.state_machine = ReasoningStateMachine(llm)
-        self.ultra_complexity_handler = UltraComplexityHandler(llm)  # New: Ultra-complexity support
     
     def _safe_float(self, value, default=0.0):
         """Safely convert value to float"""
@@ -549,36 +371,16 @@ class T1ReasoningEngine:
         except (ValueError, TypeError):
             return default
     
-    def _safe_int(self, value, default=0):
-        """Safely convert value to int"""
-        try:
-            return int(value) if value is not None else default
-        except (ValueError, TypeError):
-            return default
-    
     async def reason(self, context: ReasoningContext) -> ReasoningResult:
-        """Main reasoning method implementing T1 tautology with ultra-complexity support"""
+        """Main reasoning method implementing T1 tautology"""
         start_time = time.time()
         reasoning_trace = []
         state_transitions = []
         
-        # Detect and handle ultra-complexity
-        ultra_analysis = self.ultra_complexity_handler.detect_ultra_complexity(
-            context.problem, context.domain
-        )
-        
-        # Update context with ultra-complexity information
-        if ultra_analysis['is_ultra_complex']:
-            context.is_ultra_complex = True
-            context.complexity_level = max(context.complexity_level, ultra_analysis['complexity_level'])
-            context.hanoi_disc_count = ultra_analysis['hanoi_disc_count']
-            context.exponential_operations = ultra_analysis['estimated_operations']
-            reasoning_trace.append(f"Ultra-complexity detected: {ultra_analysis['estimated_operations']:,} operations")
-        
         # Reset state machine
         self.state_machine.reset()
         
-        # Initialize enhanced context
+        # Initialize context
         sm_context = {
             'problem': context.problem,
             'representation_format': context.representation_format,
@@ -586,12 +388,7 @@ class T1ReasoningEngine:
             'complexity_level': context.complexity_level,
             'requires_causal_analysis': context.requires_causal_analysis,
             'requires_metacognition': context.requires_metacognition,
-            'uncertainty_threshold': context.uncertainty_threshold,
-            'is_ultra_complex': context.is_ultra_complex,
-            'hanoi_disc_count': context.hanoi_disc_count,
-            'exponential_operations': context.exponential_operations,
-            'fast_slow_switching_enabled': context.fast_slow_switching_enabled,
-            'ultra_analysis': ultra_analysis
+            'uncertainty_threshold': context.uncertainty_threshold
         }
         
         # Process through state machine
@@ -633,15 +430,6 @@ class T1ReasoningEngine:
             elif current_state == ReasoningState.SELF_VERIFICATION:
                 result = await self._self_verification(sm_context, reasoning_trace)
                 sm_context.update(result)
-            
-            elif current_state == ReasoningState.ERROR:
-                # Handle error state - log error and prepare error response
-                error_msg = sm_context.get('error_message', 'Unknown error occurred')
-                reasoning_trace.append(f"ERROR: {error_msg}")
-                logger.error(f"Reasoning failed: {error_msg}")
-                sm_context['final_solution'] = f"Error: {error_msg}"
-                sm_context['confidence'] = 0.0
-                break  # Exit the processing loop
             
             # Transition to next state
             await self.state_machine.transition_to_next_state(sm_context)
@@ -704,17 +492,11 @@ class T1ReasoningEngine:
     async def _map_representation(self, context: Dict[str, Any], trace: List[str]) -> Dict[str, Any]:
         """Map parsed input to internal representation"""
         
-        # Safely serialize parsed input
-        try:
-            parsed_input_json = json.dumps(context.get('parsed_input', {}), indent=2)
-        except (TypeError, ValueError) as e:
-            parsed_input_json = f"Serialization error: {str(e)}"
-        
         mapping_prompt = f"""
         Create an internal representation from the parsed input that preserves logical structure
         across different surface representations.
         
-        Parsed Input: {parsed_input_json}
+        Parsed Input: {json.dumps(context.get('parsed_input', {}), indent=2)}
         
         Create a representation that:
         1. Preserves truth conditions
@@ -742,97 +524,46 @@ class T1ReasoningEngine:
             return {'mapping_error': True}
     
     async def _fast_processing(self, context: Dict[str, Any], trace: List[str]) -> Dict[str, Any]:
-        """Enhanced fast, intuitive processing with ultra-complexity awareness"""
+        """Fast, intuitive processing mode"""
         
-        # Check if ultra-complex problem requires different approach
-        is_ultra_complex = context.get('is_ultra_complex', False)
-        exponential_operations = context.get('exponential_operations', 0)
+        fast_prompt = f"""
+        Perform fast, intuitive reasoning using SPECIFIC PATTERN RECOGNITION CRITERIA:
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(context.get('internal_representation', {}), indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
+        Internal Representation: {json.dumps(context.get('internal_representation', {}), indent=2)}
+        Problem: {context.get('problem', '')}
         
-        if is_ultra_complex:
-            fast_prompt = f"""
-            Perform ULTRA-COMPLEX FAST REASONING for {exponential_operations:,} operation problem:
-            
-            Internal Representation: {internal_rep_json}
-            Problem: {context.get('problem', '')}
-            Complexity Level: Ultra-High ({exponential_operations:,} operations)
-            
-            ULTRA-COMPLEX FAST STRATEGY:
-            1. EXPONENTIAL PATTERN RECOGNITION:
-            - Identify if this is a 20-disk Hanoi equivalent problem
-            - Look for exponential growth patterns (2^n relationships)
-            - Recognize hyperdimensional or multiversal structures
-            - Apply ultra-high complexity heuristics
-            
-            2. SCALING PATTERN DETECTION:
-            - Detect if problem scales exponentially vs polynomially
-            - Identify recursive substructures that repeat at scale
-            - Look for parallel processing opportunities
-            - Apply divide-and-conquer at massive scale
-            
-            3. ULTRA-COMPLEXITY HEURISTICS:
-            - Use approximation methods for intractable exact solutions
-            - Apply probabilistic reasoning for massive state spaces
-            - Leverage symmetry and invariance properties
-            - Consider quantum-inspired parallel processing
-            
-            ULTRA-COMPLEX CONFIDENCE CALIBRATION:
-            - High confidence (0.7-1.0): Clear exponential pattern, proven scaling method
-            - Medium confidence (0.4-0.6): Partial pattern match, scaling uncertainty
-            - Low confidence (0.0-0.3): Novel ultra-complex pattern, heuristics uncertain
-            
-            CRITICAL: For ultra-complex problems, even "fast" reasoning must acknowledge the
-            exponential nature and provide approximation strategies rather than exact solutions.
-            
-            Return JSON with: solution, confidence (0-1), reasoning_steps, patterns_used,
-            scaling_approach, approximation_method.
-            """
-        else:
-            fast_prompt = f"""
-            Perform fast, intuitive reasoning using SPECIFIC PATTERN RECOGNITION CRITERIA:
-            
-            Internal Representation: {internal_rep_json}
-            Problem: {context.get('problem', '')}
-            
-            FAST REASONING STRATEGY:
-            1. IMMEDIATE PATTERN RECOGNITION:
-            - Identify problem type (logical, mathematical, causal, etc.)
-            - Match to known solution patterns
-            - Apply standard heuristics for this problem type
-            
-            2. FAMILIAR PROBLEM MAPPING:
-            - Compare to similar problems you've seen
-            - Use analogical reasoning
-            - Apply template solutions
-            
-            3. QUICK HEURISTIC APPLICATION:
-            - Use domain-specific shortcuts
-            - Apply rules of thumb
-            - Generate rapid approximations
-            
-            CONFIDENCE CALIBRATION:
-            - High confidence (0.8-1.0): Clear pattern match, standard problem type, confident in heuristic
-            - Medium confidence (0.5-0.7): Partial pattern match, some uncertainty in approach
-            - Low confidence (0.0-0.4): Unclear pattern, novel problem type, heuristics may not apply
-            
-            QUALITY REQUIREMENTS:
-            - Solution must address the core problem
-            - Reasoning steps must be logical (even if fast)
-            - Patterns used must be relevant to the problem type
-            - Confidence must reflect actual certainty level
-            
-            Return JSON with: solution, confidence (0-1), reasoning_steps, patterns_used.
-            """
+        FAST REASONING STRATEGY:
+        1. IMMEDIATE PATTERN RECOGNITION:
+        - Identify problem type (logical, mathematical, causal, etc.)
+        - Match to known solution patterns
+        - Apply standard heuristics for this problem type
         
-        system_prompt = """You are in fast thinking mode. Use intuition, pattern recognition,
-        and heuristics to quickly solve problems. Don't overthink - go with your first instinct.
+        2. FAMILIAR PROBLEM MAPPING:
+        - Compare to similar problems you've seen
+        - Use analogical reasoning
+        - Apply template solutions
         
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on logical reasoning only."""
+        3. QUICK HEURISTIC APPLICATION:
+        - Use domain-specific shortcuts
+        - Apply rules of thumb
+        - Generate rapid approximations
+        
+        CONFIDENCE CALIBRATION:
+        - High confidence (0.8-1.0): Clear pattern match, standard problem type, confident in heuristic
+        - Medium confidence (0.5-0.7): Partial pattern match, some uncertainty in approach
+        - Low confidence (0.0-0.4): Unclear pattern, novel problem type, heuristics may not apply
+        
+        QUALITY REQUIREMENTS:
+        - Solution must address the core problem
+        - Reasoning steps must be logical (even if fast)
+        - Patterns used must be relevant to the problem type
+        - Confidence must reflect actual certainty level
+        
+        Return JSON with: solution, confidence (0-1), reasoning_steps, patterns_used.
+        """
+        
+        system_prompt = """You are in fast thinking mode. Use intuition, pattern recognition, 
+        and heuristics to quickly solve problems. Don't overthink - go with your first instinct."""
         
         try:
             response = await self.llm.query_json(fast_prompt, system_prompt, temperature=1.0)
@@ -855,16 +586,10 @@ class T1ReasoningEngine:
     async def _slow_processing(self, context: Dict[str, Any], trace: List[str]) -> Dict[str, Any]:
         """Slow, deliberative processing mode"""
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(context.get('internal_representation', {}), indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
-        
         slow_prompt = f"""
         Perform careful, deliberative reasoning using SYSTEMATIC LOGICAL ANALYSIS:
         
-        Internal Representation: {internal_rep_json}
+        Internal Representation: {json.dumps(context.get('internal_representation', {}), indent=2)}
         Problem: {context.get('problem', '')}
         Fast Solution (if any): {context.get('fast_solution', 'None')}
         
@@ -915,10 +640,8 @@ class T1ReasoningEngine:
         verification_checks, alternative_approaches.
         """
         
-        system_prompt = """You are in slow thinking mode. Use careful, systematic reasoning.
-        Apply formal logic, check your work, consider alternatives. Be thorough and precise.
-        
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on logical reasoning only."""
+        system_prompt = """You are in slow thinking mode. Use careful, systematic reasoning. 
+        Apply formal logic, check your work, consider alternatives. Be thorough and precise."""
         
         try:
             response = await self.llm.query_json(slow_prompt, system_prompt, temperature=1.0)
@@ -1009,96 +732,27 @@ class T1ReasoningEngine:
             return {'metacognitive_error': True}
     
     async def _causal_analysis(self, context: Dict[str, Any], trace: List[str]) -> Dict[str, Any]:
-        """Enhanced causal analysis with do-calculus and structural fidelity"""
+        """Causal analysis for problems requiring causal reasoning"""
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(context.get('internal_representation', {}), indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
+        causal_prompt = f"""
+        Perform causal analysis of the problem:
         
-        is_ultra_complex = context.get('is_ultra_complex', False)
+        Problem: {context.get('problem', '')}
+        Internal Representation: {json.dumps(context.get('internal_representation', {}), indent=2)}
         
-        if is_ultra_complex:
-            causal_prompt = f"""
-            Perform ULTRA-COMPLEX CAUSAL ANALYSIS with do-calculus for {context.get('exponential_operations', 0):,} operation problem:
-            
-            Problem: {context.get('problem', '')}
-            Internal Representation: {internal_rep_json}
-            Complexity: Ultra-High (20-disk Hanoi equivalent)
-            
-            ADVANCED CAUSAL STRUCTURAL FIDELITY ANALYSIS:
-            
-            1. HYPERDIMENSIONAL CAUSAL GRAPH CONSTRUCTION:
-            - Identify causal variables across {context.get('exponential_operations', 0):,} parallel dimensions
-            - Map causal relationships that scale exponentially
-            - Build multi-level causal hierarchies
-            - Account for quantum superposition of causal states
-            
-            2. DO-CALCULUS INTERVENTIONS AT SCALE:
-            - Define intervention operators do(X) for massive variable sets
-            - Calculate P(Y|do(X)) for exponentially large outcome spaces
-            - Consider intervention effects across parallel causal chains
-            - Model cascading interventions through hyperdimensional structures
-            
-            3. STRUCTURAL CAUSAL MODEL (SCM) FIDELITY:
-            - Verify causal graph mirrors true domain structure at ultra-scale
-            - Test causal assumptions across exponential state spaces
-            - Validate structural equations for massive variable interactions
-            - Ensure causal fidelity maintains across dimensional scaling
-            
-            4. COUNTERFACTUAL REASONING AT ULTRA-COMPLEXITY:
-            - Generate counterfactuals: "What if we intervened on 2^n variables simultaneously?"
-            - Analyze nearest possible worlds across exponential possibility spaces
-            - Consider counterfactual stability across dimensional boundaries
-            - Model butterfly effects in hyperdimensional causal networks
-            
-            Return JSON with: causal_variables, causal_relationships, causal_graph,
-            do_calculus_interventions, structural_equations, counterfactual_scenarios,
-            causal_fidelity_score, ultra_complexity_adaptations.
-            """
-        else:
-            causal_prompt = f"""
-            Perform ENHANCED CAUSAL ANALYSIS with do-calculus and structural fidelity:
-            
-            Problem: {context.get('problem', '')}
-            Internal Representation: {internal_rep_json}
-            
-            CAUSAL STRUCTURAL FIDELITY ANALYSIS:
-            
-            1. CAUSAL GRAPH CONSTRUCTION:
-            - Identify all causal variables in the domain
-            - Determine causal relationships (X → Y, X ← Y, X ↔ Y)
-            - Build directed acyclic graph (DAG) representing causal structure
-            - Identify confounders, mediators, and colliders
-            
-            2. DO-CALCULUS INTERVENTIONS:
-            - Define intervention operators do(X) for key variables
-            - Calculate P(Y|do(X)) - probability of Y given intervention on X
-            - Distinguish causation from correlation using intervention logic
-            - Model what happens when we "break" causal arrows through intervention
-            
-            3. STRUCTURAL CAUSAL MODEL (SCM):
-            - Define structural equations for each variable
-            - Specify noise terms and their distributions
-            - Ensure model captures true causal mechanisms of the domain
-            - Validate that internal representation mirrors real causal structure
-            
-            4. COUNTERFACTUAL REASONING:
-            - Generate counterfactuals: "What would have happened if X had been different?"
-            - Use three-step process: abduction, action, prediction
-            - Analyze nearest possible worlds and counterfactual stability
-            - Test causal claims through counterfactual implications
-            
-            Return JSON with: causal_variables, causal_relationships, causal_graph,
-            do_calculus_interventions, structural_equations, counterfactual_scenarios,
-            causal_fidelity_score, validation_tests.
-            """
+        Analyze causal structure:
+        1. Identify causal variables
+        2. Determine causal relationships
+        3. Build causal graph
+        4. Consider interventions (do-calculus)
+        5. Analyze counterfactuals
         
-        system_prompt = """You are performing causal analysis. Focus on identifying true causal
-        relationships, not just correlations. Consider what would happen under interventions.
+        Return JSON with: causal_variables, causal_relationships, causal_graph, 
+        possible_interventions, counterfactual_scenarios.
+        """
         
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on causal reasoning only."""
+        system_prompt = """You are performing causal analysis. Focus on identifying true causal 
+        relationships, not just correlations. Consider what would happen under interventions."""
         
         try:
             response = await self.llm.query_json(causal_prompt, system_prompt)
@@ -1252,10 +906,8 @@ class T1ReasoningEngine:
         c3_compliance, overall_t1_compliance, compliance_score (0-1).
         """
         
-        system_prompt = """Evaluate compliance with the T1 Reasoning-Capability Tautology.
-        Be objective in assessing whether the reasoning meets the formal requirements.
-        
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on compliance evaluation only."""
+        system_prompt = """Evaluate compliance with the T1 Reasoning-Capability Tautology. 
+        Be objective in assessing whether the reasoning meets the formal requirements."""
         
         try:
             response = await self.llm.query_json(compliance_prompt, system_prompt)
@@ -1369,16 +1021,10 @@ class TUUnderstandingEngine:
     async def _extract_truth_value(self, internal_rep: Dict[str, Any], trace: List[str]) -> bool:
         """Extract truth value from internal representation"""
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(internal_rep, indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
-        
         truth_prompt = f"""
         Extract the truth value from this internal representation:
         
-        Internal Representation: {internal_rep_json}
+        Internal Representation: {json.dumps(internal_rep, indent=2)}
         
         Determine:
         1. Is the proposition true or false?
@@ -1442,16 +1088,10 @@ class TUUnderstandingEngine:
     async def _test_counterfactual_competence(self, internal_rep: Dict[str, Any], trace: List[str]) -> float:
         """Test C5: Counterfactual competence"""
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(internal_rep, indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
-        
         counterfactual_prompt = f"""
         Test counterfactual competence using this internal representation:
         
-        Internal Representation: {internal_rep_json}
+        Internal Representation: {json.dumps(internal_rep, indent=2)}
         
         Generate and test counterfactual scenarios:
         1. What if the key conditions were different?
@@ -1574,9 +1214,7 @@ class TUUnderstandingEngine:
         """
         
         system_prompt = """Evaluate compliance with the TU Understanding-Capability Tautology.
-        Assess whether the understanding meets the formal requirements.
-        
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on compliance evaluation only."""
+        Assess whether the understanding meets the formal requirements."""
         
         try:
             response = await self.llm.query_json(compliance_prompt, system_prompt)
@@ -1654,18 +1292,12 @@ class TUStarExtendedUnderstandingEngine:
                                                internal_rep: Dict[str, Any], trace: List[str]) -> Dict[str, Any]:
         """E1: Assess causal structural fidelity"""
         
-        # Safely serialize internal representation
-        try:
-            internal_rep_json = json.dumps(internal_rep, indent=2)
-        except (TypeError, ValueError) as e:
-            internal_rep_json = f"Serialization error: {str(e)}"
-        
         causal_prompt = f"""
         Assess causal structural fidelity for deep understanding:
         
         Proposition: {proposition}
         Domain: {domain}
-        Internal Representation: {internal_rep_json}
+        Internal Representation: {json.dumps(internal_rep, indent=2)}
         
         Evaluate E1 - Causal Structural Fidelity:
         1. Does the internal representation mirror the causal graph of the domain?
@@ -1699,16 +1331,10 @@ class TUStarExtendedUnderstandingEngine:
                                             trace: List[str]) -> Dict[str, Any]:
         """E2: Assess metacognitive self-awareness"""
         
-        # Safely serialize the base understanding data
-        try:
-            base_understanding_json = json.dumps(base_understanding.__dict__, indent=2, default=str)
-        except (TypeError, ValueError) as e:
-            base_understanding_json = f"Serialization error: {str(e)}"
-        
         metacognitive_prompt = f"""
         Analyze the metacognitive capabilities demonstrated in this reasoning process:
         
-        Base Understanding: {base_understanding_json}
+        Base Understanding: {json.dumps(base_understanding.__dict__, indent=2, default=str)}
         
         Evaluate the following metacognitive indicators:
         1. Quality of confidence calibration in the responses
@@ -1753,16 +1379,10 @@ class TUStarExtendedUnderstandingEngine:
                                          trace: List[str]) -> Dict[str, Any]:
         """E3: Assess phenomenal awareness (theoretical)"""
         
-        # Safely serialize the base understanding data
-        try:
-            base_understanding_json = json.dumps(base_understanding.__dict__, indent=2, default=str)
-        except (TypeError, ValueError) as e:
-            base_understanding_json = f"Serialization error: {str(e)}"
-        
         phenomenal_prompt = f"""
         Conduct a theoretical analysis of consciousness-related indicators in AI reasoning:
         
-        Base Understanding: {base_understanding_json}
+        Base Understanding: {json.dumps(base_understanding.__dict__, indent=2, default=str)}
         
         Analyze theoretical indicators that philosophers and cognitive scientists
         associate with phenomenal consciousness:
@@ -1881,9 +1501,7 @@ class TUStarExtendedUnderstandingEngine:
         """
         
         system_prompt = """Evaluate compliance with the TU* Extended Understanding-Capability Tautology.
-        Consider both the base TU requirements and the extended E1, E2, E3 requirements.
-        
-        IMPORTANT: Implementation of algorithms or coding is not allowed. Focus on compliance evaluation only."""
+        Consider both the base TU requirements and the extended E1, E2, E3 requirements."""
         
         try:
             response = await self.llm.query_json(compliance_prompt, system_prompt)
@@ -1906,104 +1524,6 @@ class TUStarExtendedUnderstandingEngine:
             })
             return compliance
 
-class FastSlowThinkingCoordinator:
-    """Coordinator for dynamic fast/slow thinking integration as described in Bhatt Conjectures"""
-    
-    def __init__(self, llm: LLMInterface):
-        self.llm = llm
-        self.fast_threshold = 0.8  # Confidence threshold for fast-only processing
-        self.slow_threshold = 0.6  # Confidence threshold below which slow processing is required
-        self.uncertainty_threshold = 0.7  # Uncertainty threshold for mode switching
-    
-    def should_switch_to_slow(self, fast_result: Dict[str, Any], context: Dict[str, Any]) -> bool:
-        """Determine if we should switch from fast to slow thinking"""
-        
-        fast_confidence = fast_result.get('confidence', 0.0)
-        is_ultra_complex = context.get('is_ultra_complex', False)
-        complexity_level = context.get('complexity_level', 3)
-        
-        # Always use slow thinking for ultra-complex problems
-        if is_ultra_complex:
-            return True
-        
-        # Switch to slow if confidence is below threshold
-        if fast_confidence < self.slow_threshold:
-            return True
-        
-        # Switch to slow for high complexity problems regardless of confidence
-        if complexity_level >= 4:
-            return True
-        
-        # Check for uncertainty indicators in fast reasoning
-        patterns_used = fast_result.get('patterns_used', [])
-        if not patterns_used or 'uncertain' in str(patterns_used).lower():
-            return True
-        
-        return False
-    
-    def should_use_metacognitive_evaluation(self, context: Dict[str, Any],
-                                          fast_result: Dict[str, Any],
-                                          slow_result: Dict[str, Any] = None) -> bool:
-        """Determine if metacognitive evaluation is needed"""
-        
-        is_ultra_complex = context.get('is_ultra_complex', False)
-        complexity_level = context.get('complexity_level', 3)
-        
-        # Always use metacognitive evaluation for ultra-complex problems
-        if is_ultra_complex:
-            return True
-        
-        # Use for high complexity problems
-        if complexity_level >= 4:
-            return True
-        
-        # Use if there's disagreement between fast and slow thinking
-        if slow_result:
-            fast_conf = fast_result.get('confidence', 0.0)
-            slow_conf = slow_result.get('confidence', 0.0)
-            if abs(fast_conf - slow_conf) > 0.3:
-                return True
-        
-        # Use if confidence is in uncertain range
-        current_confidence = slow_result.get('confidence', 0.0) if slow_result else fast_result.get('confidence', 0.0)
-        if 0.4 <= current_confidence <= 0.7:
-            return True
-        
-        return False
-    
-    async def coordinate_thinking_modes(self, context: Dict[str, Any],
-                                      fast_result: Dict[str, Any],
-                                      trace: List[str]) -> Dict[str, Any]:
-        """Coordinate between fast and slow thinking modes"""
-        
-        coordination_result = {
-            'mode_used': 'fast_only',
-            'final_solution': fast_result.get('solution', ''),
-            'final_confidence': fast_result.get('confidence', 0.0),
-            'reasoning_trace': fast_result.get('reasoning_steps', []),
-            'coordination_notes': []
-        }
-        
-        # Check if we need slow thinking
-        if self.should_switch_to_slow(fast_result, context):
-            coordination_result['mode_used'] = 'hybrid_fast_slow'
-            coordination_result['coordination_notes'].append("Switched to slow thinking due to uncertainty/complexity")
-            trace.append("Fast/Slow Coordinator: Switching to slow thinking")
-            
-            # Note: Slow thinking would be handled by the main reasoning engine
-            # This coordinator just makes the decision
-        
-        # Check for mode switching recommendations
-        fast_confidence = fast_result.get('confidence', 0.0)
-        if fast_confidence > self.fast_threshold:
-            coordination_result['coordination_notes'].append("High confidence - fast thinking sufficient")
-        elif fast_confidence < self.slow_threshold:
-            coordination_result['coordination_notes'].append("Low confidence - slow thinking recommended")
-        else:
-            coordination_result['coordination_notes'].append("Medium confidence - hybrid approach optimal")
-        
-        return coordination_result
-
 class AgenticReasoningSystemSDK:
     """Main SDK class implementing the complete Bhatt Conjectures framework"""
     
@@ -2013,9 +1533,8 @@ class AgenticReasoningSystemSDK:
         self.t1_engine = T1ReasoningEngine(self.llm)
         self.tu_engine = TUUnderstandingEngine(self.llm)
         self.tustar_engine = TUStarExtendedUnderstandingEngine(self.llm, self.tu_engine)
-        self.fast_slow_coordinator = FastSlowThinkingCoordinator(self.llm)  # New: Fast/Slow coordination
         
-        logger.info("Agentic Reasoning System SDK initialized with enhanced fast/slow thinking")
+        logger.info("Agentic Reasoning System SDK initialized")
     
     async def reason(self, problem: str, representation_format: str = "natural_language",
                     domain: str = "general", complexity_level: int = 3,
