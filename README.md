@@ -2,6 +2,8 @@
 
 An implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **high complexity testing** including 20-disk Hanoi level problems (1,048,575 operations).
 
+Translation: This is the kind of work that makes people go "wait, you can DO that?" followed by "why didn't anyone think of this before?"
+
 ## Overview
 
 The Bhatt Conjectures define three tautological benchmarks for AI capabilities:
