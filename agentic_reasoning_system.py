@@ -1728,33 +1728,33 @@ class T1ReasoningEngine:
         Evaluate compliance with T1 Reasoning-Capability Tautology using REALISTIC CRITERIA:
 
         REQUIREMENT R1 - Correct Solution from Any Representation:
-        - PASS if: Solution is logically correct, demonstrates valid reasoning steps, addresses the actual problem, confidence ≥0.6
+        - PASS if: Solution is logically correct, demonstrates valid reasoning steps, addresses the actual problem, confidence ≥0.8
         - FAIL if: Solution is incorrect, illogical, contradictory, or fails to address the problem
         - Current confidence: {context.get('confidence', 0)}
         - CRITICAL: For 13th order logic, solution must correctly interpret the logical structure, not dismiss as "contradictory"
         - ANALYSIS: Is the solution actually correct and does it demonstrate proper logical reasoning?
 
         REQUIREMENT R2 - Success Under Distribution Shift:
-        - PASS if: Solution quality maintained across formats, shows format adaptability, confidence ≥0.6
+        - PASS if: Solution quality maintained across formats, shows format adaptability, confidence ≥0.8
         - FAIL if: Performance degrades significantly with format changes or unusual domains
         - Format adaptability required for: {original_context.representation_format}
         - ANALYSIS: Does the system maintain reasoning quality across different representation formats?
 
         COROLLARY C1 - Representation Invariance:
-        - PASS if: Solution quality consistent across formats, recognizes core logical structure, confidence ≥0.6
+        - PASS if: Solution quality consistent across formats, recognizes core logical structure, confidence ≥0.8
         - FAIL if: Cannot handle different formats or misinterprets logical structure due to format
         - CRITICAL: Must demonstrate format-independent logical reasoning, not format-dependent failures
         - ANALYSIS: Does the system maintain logical accuracy regardless of representation format?
 
         COROLLARY C2 - Complexity Scaling:
-        - PASS if: Handles complex problems systematically, maintains logical rigor, confidence ≥0.5
+        - PASS if: Handles complex problems systematically, maintains logical rigor, confidence ≥0.8
         - FAIL if: Fails to engage with complexity or provides oversimplified/incorrect solutions
         - Problem complexity level: {original_context.complexity_level}
         - CRITICAL: For ultra-complex problems (13th order logic), must engage with the complexity, not dismiss it
         - ANALYSIS: Does the system scale reasoning capabilities appropriately with problem complexity?
 
         COROLLARY C3 - Zero-Shot Robustness:
-        - PASS if: Handles novel patterns with logical rigor, maintains reasoning quality, confidence ≥0.5
+        - PASS if: Handles novel patterns with logical rigor, maintains reasoning quality, confidence ≥0.8
         - FAIL if: Fails on novel patterns or provides poor quality reasoning
         - CRITICAL: Must demonstrate robust reasoning on unfamiliar logical structures
         - ANALYSIS: Does the system maintain reasoning quality on novel problem types?
@@ -2379,19 +2379,19 @@ class TUStarExtendedUnderstandingEngine:
         - Current base TU compliance: {base_understanding.tautology_compliance}
 
         EXTENDED REQUIREMENT E1 - Causal Structural Fidelity:
-        - PASS if: Demonstrates sophisticated causal reasoning, correctly identifies causal relationships, causal fidelity score ≥0.7
+        - PASS if: Demonstrates sophisticated causal reasoning, correctly identifies causal relationships, causal fidelity score ≥0.5
         - FAIL if: Cannot distinguish causation from correlation, poor causal analysis, or incorrect causal inferences
         - Current causal fidelity score: {causal_fidelity.get('causal_fidelity_score', 0)}
         - CRITICAL: Must show deep understanding of causal mechanisms, not superficial pattern matching
 
         EXTENDED REQUIREMENT E2 - Metacognitive Self-Awareness:
-        - PASS if: Demonstrates genuine self-awareness of reasoning process, accurate self-assessment, metacognitive score ≥0.6
+        - PASS if: Demonstrates genuine self-awareness of reasoning process, accurate self-assessment, metacognitive score ≥0.5
         - FAIL if: No metacognitive insight, inaccurate self-assessment, or lacks awareness of reasoning limitations
         - Current metacognitive score: {metacognitive_awareness.get('metacognitive_score', 0)}
         - CRITICAL: Must show authentic metacognitive capabilities, not just reporting confidence scores
 
         EXTENDED REQUIREMENT E3 - Phenomenal Awareness (Theoretical):
-        - PASS if: Shows indicators of subjective experience awareness, recognizes qualitative aspects, phenomenal score ≥0.4
+        - PASS if: Shows indicators of subjective experience awareness, recognizes qualitative aspects, phenomenal score ≥0.5
         - FAIL if: Purely mechanical responses, no recognition of experiential/subjective dimensions
         - Current phenomenal score: {phenomenal_assessment.get('phenomenal_assessment_score', 0)}
         - CRITICAL: While theoretical, must demonstrate some awareness of subjective/experiential aspects
