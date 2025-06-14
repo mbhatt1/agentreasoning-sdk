@@ -62,7 +62,6 @@ pip install openai asyncio
 Set your OpenAI API key:
 ```bash
 export OPENAI_API_KEY="your-api-key-here"
-source ~/.bashrc  # Apply the environment variable immediately
 ```
 
 **Important**: After setting the API key, run `source ~/.bashrc` to ensure the environment variable is loaded in your current session.
