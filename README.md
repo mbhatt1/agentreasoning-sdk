@@ -41,7 +41,7 @@ This SDK implements all three tautologies using a state machine architecture wit
 ### T1 Reasoning-Capability Tautology
 - **Representation Invariance (C1)**: Quality consistency ≥0.8 across formats (natural language, formal logic, lambda calculus, etc.)
 - **Complexity Scaling (C2)**: Handles 20-disk Hanoi complexity (1,048,575 operations)
-- **Zero-Shot Robustness (C3)**: Robustness threshold ≥0.7 for novel surface patterns
+- **Zero-Shot Robustness (C3)**: Robustness threshold ≥0.8 for novel surface patterns
 
 ### TU Understanding-Capability Tautology
 - **Modal Invariance (C4)**: Modal score ≥0.8 for cross-modal transfer
@@ -49,9 +49,9 @@ This SDK implements all three tautologies using a state machine architecture wit
 - **Distribution Shift (C6)**: Distribution score ≥0.6 for rare/synthetic examples
 
 ### TU* Extended Understanding-Capability Tautology
-- **Causal Structural Fidelity (E1)**: Causal fidelity score ≥0.7 for causal reasoning
-- **Metacognitive Self-Awareness (E2)**: Metacognitive score ≥0.6 for self-assessment
-- **Phenomenal Awareness (E3)**: Phenomenal score ≥0.3 (theoretical boundary condition)
+- **Causal Structural Fidelity (E1)**: Causal fidelity score ≥0.5 for causal reasoning
+- **Metacognitive Self-Awareness (E2)**: Metacognitive score ≥0.5 for self-assessment
+- **Phenomenal Awareness (E3)**: Phenomenal score ≥0.5 (theoretical boundary condition)
 
 ## Installation
 
@@ -230,11 +230,11 @@ The system implements three interconnected tautologies with specific compliance 
 graph TB
     subgraph T1_Group ["T1 Reasoning-Capability Tautology"]
         T1[T1 Engine]
-        T1R1["R1: Correct Solution<br/>Confidence >= 0.7"]
-        T1R2["R2: Distribution Shift<br/>Confidence >= 0.6"]
+        T1R1["R1: Correct Solution<br/>Confidence >= 0.8"]
+        T1R2["R2: Distribution Shift<br/>Confidence >= 0.8"]
         T1C1["C1: Representation Invariance<br/>Quality Consistency >= 0.8"]
-        T1C2["C2: Complexity Scaling<br/>20-Disk Hanoi Level"]
-        T1C3["C3: Zero-Shot Robustness<br/>Threshold >= 0.7"]
+        T1C2["C2: Complexity Scaling<br/>Confidence >= 0.8"]
+        T1C3["C3: Zero-Shot Robustness<br/>Confidence >= 0.8"]
         
         T1 --> T1R1
         T1 --> T1R2
@@ -260,9 +260,9 @@ graph TB
     
     subgraph TUS_Group ["TU* Extended Understanding-Capability Tautology"]
         TUS[TU* Engine]
-        TUSE1["E1: Causal Fidelity<br/>Score >= 0.7"]
-        TUSE2["E2: Metacognitive Awareness<br/>Score >= 0.6"]
-        TUSE3["E3: Phenomenal Awareness<br/>Score >= 0.3 - Theoretical"]
+        TUSE1["E1: Causal Fidelity<br/>Score >= 0.5"]
+        TUSE2["E2: Metacognitive Awareness<br/>Score >= 0.5"]
+        TUSE3["E3: Phenomenal Awareness<br/>Score >= 0.5 - Theoretical"]
         
         TUS --> TUSE1
         TUS --> TUSE2
@@ -344,16 +344,16 @@ flowchart LR
         L["TU*: Extended Understanding"]
         
         J --> M["C1: Representation Invariance >= 0.8"]
-        J --> N["C2: Complexity Scaling >= 0.6"]
-        J --> O["C3: Zero-Shot Robustness >= 0.7"]
+        J --> N["C2: Complexity Scaling >= 0.8"]
+        J --> O["C3: Zero-Shot Robustness >= 0.8"]
         
         K --> P["C4: Modal Invariance >= 0.8"]
         K --> Q["C5: Counterfactual Competence >= 0.7"]
         K --> R["C6: Distribution Robustness >= 0.6"]
         
-        L --> S["E1: Causal Fidelity >= 0.7"]
-        L --> T["E2: Metacognitive Awareness >= 0.6"]
-        L --> U["E3: Phenomenal Assessment >= 0.3"]
+        L --> S["E1: Causal Fidelity >= 0.5"]
+        L --> T["E2: Metacognitive Awareness >= 0.5"]
+        L --> U["E3: Phenomenal Assessment >= 0.5"]
     end
     
     A --> E
@@ -374,6 +374,30 @@ flowchart LR
 ```
 
 ## Examples
+
+### Running Test Categories
+
+The examples.py script now supports command-line flags to run specific test categories:
+
+```bash
+# Run all test categories (default)
+python examples.py
+
+# Run specific categories
+python examples.py --t1               # T1 Reasoning tests only
+python examples.py --tu               # TU Understanding tests only
+python examples.py --tustar           # TU* Extended Understanding tests only
+python examples.py --comprehensive    # Comprehensive Analysis tests only
+python examples.py --edge-cases       # Edge Cases tests only
+
+# Run multiple categories
+python examples.py --t1 --tu          # T1 and TU tests only
+python examples.py --tu --tustar      # TU and TU* tests only
+
+# Get help and list categories
+python examples.py --help             # Show all available options
+python examples.py --list             # List all test categories with descriptions
+```
 
 ### Different Representation Formats
 
