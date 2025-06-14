@@ -387,7 +387,7 @@ class T1ReasoningEngine:
         
         return ReasoningResult(
             solution=sm_context.get('final_solution', 'No solution generated'),
-            confidence=sm_context.get('confidence', 0.0),
+            confidence=self._safe_float(sm_context.get('confidence', 0.0)),
             reasoning_trace=reasoning_trace,
             internal_state=sm_context.get('internal_representation', {}),
             mode_used=ReasoningMode.SLOW_DELIBERATIVE,
@@ -1024,7 +1024,7 @@ class TUUnderstandingEngine:
             trace.append("Tested modal invariance across modalities")
             score = response.get('overall_invariance_score', 0.7)
             try:
-                return float(score)
+                return float(score) if score is not None else 0.7
             except (ValueError, TypeError):
                 return 0.7  # Default fallback
         except Exception as e:
@@ -1064,7 +1064,7 @@ class TUUnderstandingEngine:
             trace.append("Tested counterfactual competence")
             score = response.get('competence_score', 0.7)
             try:
-                return float(score)
+                return float(score) if score is not None else 0.7
             except (ValueError, TypeError):
                 return 0.7  # Default fallback
         except Exception as e:
@@ -1104,7 +1104,7 @@ class TUUnderstandingEngine:
             trace.append("Tested distribution shift robustness")
             score = response.get('robustness_score', 0.7)
             try:
-                return float(score)
+                return float(score) if score is not None else 0.7
             except (ValueError, TypeError):
                 return 0.7  # Default fallback
         except Exception as e:

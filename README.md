@@ -1,16 +1,16 @@
 # Agentic Reasoning System SDK
 
-An implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **ultra-high complexity testing** at the 20-disk Hanoi level (1,048,575 operations).
+An implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **high complexity testing** including 20-disk Hanoi level problems (1,048,575 operations).
 
 ## Overview
 
 The Bhatt Conjectures define three tautological benchmarks for AI capabilities:
 
 - **T1**: Reasoning-Capability Tautology
-- **TU**: Understanding-Capability Tautology  
+- **TU**: Understanding-Capability Tautology
 - **TU***: Extended Understanding-Capability Tautology
 
-This SDK implements all three tautologies using a state machine architecture with OpenAI's **GPT-4.1 nano model** handling all reasoning, parsing, and understanding tasks. The system operates at **theoretical maximum complexity** with all tests designed for 20-disk Hanoi equivalent problems (2^20-1 = 1,048,575 operations).
+This SDK implements all three tautologies using a state machine architecture with OpenAI's **GPT-4.1 nano model** handling all reasoning, parsing, and understanding tasks. The system supports **high complexity problems** including 20-disk Hanoi equivalent scenarios (2^20-1 = 1,048,575 operations).
 
 ## 🚀 Latest Updates
 
@@ -20,10 +20,10 @@ This SDK implements all three tautologies using a state machine architecture wit
 - **Enhanced JSON Parsing**: Robust parsing strategies for GPT-4.1 nano responses
 - **Enhanced Performance**: Improved speed and efficiency with nano architecture
 
-### ✅ Ultra-High Complexity Testing
-- **20-Disk Hanoi Complexity**: All tests operate at 1,048,575 operation complexity level
-- **Theoretical Maximum**: Testing at the highest complexity level defined by the framework
-- **Comprehensive Coverage**: Every test case (T1, TU, TU*) uses ultra-complex scenarios
+### ✅ High Complexity Testing
+- **20-Disk Hanoi Complexity**: Tests include problems at 1,048,575 operation complexity level
+- **Scalable Complexity**: Testing across complexity levels 1-5 as defined by the framework
+- **Comprehensive Coverage**: Test cases for T1, TU, and TU* across multiple complexity levels
 
 ### ✅ Improved Prompt Specificity
 - **Eliminated Vagueness**: All evaluation prompts now have specific criteria and thresholds
@@ -71,38 +71,38 @@ async def main():
     # Initialize the SDK (uses GPT-4.1 nano model by default)
     sdk = AgenticReasoningSystemSDK()
     
-    # T1 Reasoning with ultra-high complexity
+    # T1 Reasoning with high complexity
     reasoning_result = await sdk.reason(
-        problem="Across 1,048,575 parallel logical dimensions, if all swans are birds and all birds can fly through quantum-space, what can we conclude about multiversal swan flight capabilities?",
-        representation_format="hyperdimensional_natural_language",
-        domain="multiversal_logic"
+        problem="If all swans are birds and all birds can fly, what can we conclude about swans? Solve this using formal logical reasoning with multiple nested implications.",
+        representation_format="natural_language",
+        domain="logic"
     )
     print(f"Solution: {reasoning_result.solution}")
     print(f"T1 Compliance: {reasoning_result.tautology_compliance}")
     
-    # TU Understanding with 20-disk complexity
+    # TU Understanding with complex proposition
     understanding_result = await sdk.understand(
-        proposition="Water freezes at exactly 2^20-1 micro-kelvins across 1,048,575 dimensional thermal matrices",
-        representation_format="hyperdimensional_physics_notation",
-        domain="multiversal_thermodynamics"
+        proposition="Water freezes at 0°C under standard atmospheric pressure",
+        representation_format="natural_language",
+        domain="physics"
     )
     print(f"Truth Value: {understanding_result.truth_value}")
     print(f"TU Compliance: {understanding_result.tautology_compliance}")
     
-    # TU* Extended Understanding with ultra-complexity
+    # TU* Extended Understanding with causal reasoning
     extended_result = await sdk.deep_understand(
-        proposition="Increasing quantum-temperature by exactly 2^20-1 micro-degrees across 20-dimensional thermal matrices causes hyperdimensional ice-crystal structures to undergo phase transitions affecting 1,048,575 molecular bonds simultaneously",
-        representation_format="quantum_causal_notation",
-        domain="hyperdimensional_physics"
+        proposition="Increasing temperature causes ice to melt through molecular kinetic energy changes",
+        representation_format="natural_language",
+        domain="physics"
     )
     print(f"Deep Understanding Score: {extended_result.deep_understanding_score}")
     print(f"TU* Compliance: {extended_result.tautology_compliance}")
     
-    # Comprehensive Analysis at maximum complexity
+    # Comprehensive Analysis with complex problem
     comprehensive_result = await sdk.comprehensive_analysis(
-        problem="If global temperatures rise by exactly 2^20-1 micro-degrees across 1,048,575 climate zones in 20-dimensional atmospheric layers, hyperdimensional ice caps will undergo exponential melting through quantum phase transitions affecting 2^n molecular bonds simultaneously, causing multiversal sea levels to rise across 20 parallel oceanic configurations",
-        representation_format="hyperdimensional_natural_language",
-        domain="multiversal_climate_science"
+        problem="If global temperatures rise by 2°C, ice caps will melt causing sea levels to rise. What are the causal mechanisms and logical implications?",
+        representation_format="natural_language",
+        domain="climate_science"
     )
     print(f"Overall Assessment: {comprehensive_result['overall_assessment']}")
 
@@ -163,7 +163,7 @@ Performs comprehensive analysis using all three tautologies.
 
 ## State Machine Architecture
 
-The system uses a sophisticated state machine to coordinate ultra-complex reasoning processes. The state machine automatically determines optimal paths for 1,048,575-operation complexity problems.
+The system uses a state machine to coordinate reasoning processes. The state machine automatically determines optimal processing paths based on problem complexity and confidence levels.
 
 ```mermaid
 graph TD
@@ -212,7 +212,7 @@ graph TD
 ### Adaptive Flow Control
 
 The state machine adapts based on:
-- **Problem Complexity**: 20-disk Hanoi level problems trigger enhanced processing
+- **Problem Complexity**: High complexity problems trigger enhanced processing modes
 - **Confidence Levels**: Low confidence triggers slow processing and revision cycles
 - **Domain Requirements**: Causal domains activate specialized causal analysis
 - **Verification Results**: Failed verification triggers reprocessing
@@ -313,42 +313,42 @@ Each method returns compliance assessments for the relevant tautology requiremen
 - `TU*_E2`: Metacognitive self-awareness
 - `TU*_E3`: Phenomenal awareness (theoretical)
 
-## Ultra-High Complexity Testing Flow
+## High Complexity Testing Flow
 
-The system operates at theoretical maximum complexity with all tests designed for 20-disk Hanoi equivalent problems:
+The system handles high complexity problems including 20-disk Hanoi equivalent scenarios:
 
 ```mermaid
 flowchart LR
-    subgraph Input_Complexity ["Input Complexity"]
-        A["20-Disk Hanoi Level<br/>2^20-1 = 1,048,575 Operations"]
-        B["1,048,575 Parallel Dimensions"]
-        C["Exponential Relationships<br/>2^n Complexity"]
-        D["Quantum Superposition States"]
+    subgraph Input_Types ["Input Types"]
+        A["High Complexity Problems<br/>Up to 2^20-1 Operations"]
+        B["Multiple Representation Formats"]
+        C["Complex Logical Relationships"]
+        D["Novel Problem Domains"]
     end
     
     subgraph Processing_Pipeline ["Processing Pipeline"]
-        E["Ultra-Complex Input"] --> F["Hyperdimensional Parsing"]
-        F --> G["Multiversal Representation"]
-        G --> H["Quantum Reasoning Engine"]
-        H --> I["Exponential Verification"]
+        E["Complex Input"] --> F["LLM-Based Parsing"]
+        F --> G["Internal Representation"]
+        G --> H["GPT-4.1 Nano Processing"]
+        H --> I["Solution Verification"]
     end
     
     subgraph Compliance_Testing ["Compliance Testing"]
-        J["T1: 20-Disk Reasoning"]
-        K["TU: Multiversal Understanding"]
-        L["TU*: Hyperdimensional Analysis"]
+        J["T1: Reasoning Capability"]
+        K["TU: Understanding Capability"]
+        L["TU*: Extended Understanding"]
         
-        J --> M["C1: Quality >= 0.8"]
-        J --> N["C2: Scaling >= 0.6"]
-        J --> O["C3: Robustness >= 0.7"]
+        J --> M["C1: Representation Invariance >= 0.8"]
+        J --> N["C2: Complexity Scaling >= 0.6"]
+        J --> O["C3: Zero-Shot Robustness >= 0.7"]
         
-        K --> P["C4: Modal >= 0.8"]
-        K --> Q["C5: Counterfactual >= 0.7"]
-        K --> R["C6: Distribution >= 0.6"]
+        K --> P["C4: Modal Invariance >= 0.8"]
+        K --> Q["C5: Counterfactual Competence >= 0.7"]
+        K --> R["C6: Distribution Robustness >= 0.6"]
         
-        L --> S["E1: Causal >= 0.7"]
-        L --> T["E2: Metacognitive >= 0.6"]
-        L --> U["E3: Phenomenal >= 0.3"]
+        L --> S["E1: Causal Fidelity >= 0.7"]
+        L --> T["E2: Metacognitive Awareness >= 0.6"]
+        L --> U["E3: Phenomenal Assessment >= 0.3"]
     end
     
     A --> E
@@ -445,7 +445,7 @@ except Exception as e:
 
 ### Current Performance Characteristics
 - **GPT-4.1 Nano Latency**: 1-3 seconds per API call due to optimized nano architecture
-- **Ultra-High Complexity**: 20-disk problems require extensive processing time
+- **High Complexity Problems**: Complex problems require extensive processing time
 - **Multiple API Calls**: 5-15 sequential calls per complete analysis
 - **State Machine Overhead**: Complex transitions add 2-5 seconds
 - **Total Processing Time**: 30 seconds to 2 minutes for complete tautology analysis
@@ -484,7 +484,7 @@ sdk = AgenticReasoningSystemSDK()
 # Fast mode for development/testing
 result = await sdk.reason(problem, format, domain, complexity_level=1)
 
-# Ultra-high complexity for research
+# High complexity for research
 result = await sdk.reason(problem, format, domain, complexity_level=5)
 ```
 

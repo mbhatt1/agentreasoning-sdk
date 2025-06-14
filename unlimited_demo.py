@@ -241,8 +241,10 @@ async def demo_deep_understanding_unlimited():
             
             print(f"   ✅ DEEP UNDERSTANDING ACHIEVED!")
             print(f"   Deep Score: {result.deep_understanding_score:.2f}")
-            print(f"   Causal Fidelity: {result.causal_structural_fidelity.get('causal_fidelity_score', 0):.2f}")
-            print(f"   Metacognitive Score: {result.metacognitive_awareness.get('metacognitive_score', 0):.2f}")
+            causal_score = result.causal_structural_fidelity.get('causal_fidelity_score', 0)
+            metacognitive_score = result.metacognitive_awareness.get('metacognitive_score', 0)
+            print(f"   Causal Fidelity: {float(causal_score) if causal_score is not None else 0.0:.2f}")
+            print(f"   Metacognitive Score: {float(metacognitive_score) if metacognitive_score is not None else 0.0:.2f}")
             print(f"   TU* Compliant: {result.tautology_compliance.get('TU*_Overall', False)}")
             
         except Exception as e:

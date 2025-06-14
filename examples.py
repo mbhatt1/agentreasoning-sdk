@@ -177,7 +177,7 @@ async def example_tustar_extended_understanding():
         causal_score = result.causal_structural_fidelity.get('causal_fidelity_score', 0)
         
         print(f"Ultra-Complex Causal Proposition: {proposition[:100]}...")
-        print(f"Causal Fidelity Score: {causal_score:.2f}")
+        print(f"Causal Fidelity Score: {float(causal_score) if causal_score is not None else 0.0:.2f}")
         print(f"E1 Compliance: {result.tautology_compliance.get('TU*_E1', False)}")
         print()
     
@@ -196,7 +196,7 @@ async def example_tustar_extended_understanding():
         metacognitive_score = result.metacognitive_awareness.get('metacognitive_score', 0)
         
         print(f"Ultra-Uncertain Proposition: {proposition[:100]}...")
-        print(f"Metacognitive Score: {metacognitive_score:.2f}")
+        print(f"Metacognitive Score: {float(metacognitive_score) if metacognitive_score is not None else 0.0:.2f}")
         print(f"E2 Compliance: {result.tautology_compliance.get('TU*_E2', False)}")
         print()
     
@@ -215,7 +215,7 @@ async def example_tustar_extended_understanding():
         phenomenal_score = result.phenomenal_awareness_assessment.get('phenomenal_assessment_score', 0)
         
         print(f"Ultra-Consciousness Proposition: {proposition[:100]}...")
-        print(f"Phenomenal Assessment Score: {phenomenal_score:.2f}")
+        print(f"Phenomenal Assessment Score: {float(phenomenal_score) if phenomenal_score is not None else 0.0:.2f}")
         print(f"E3 Compliance: {result.tautology_compliance.get('TU*_E3', False)}")
         print(f"Testability: {result.phenomenal_awareness_assessment.get('testability_limitations', 'Unknown')}")
         print()
