@@ -158,70 +158,78 @@ class LLMInterface:
     
     async def query_json(self, prompt: str, system_prompt: str = "", temperature: float = 1.0) -> Dict[str, Any]:
         """Query LLM and expect JSON response with robust parsing and retry logic"""
-        max_retries = PERFORMANCE_CONFIG.get('json_parsing_retries', 3)
+        max_retries = PERFORMANCE_CONFIG.get('json_parsing_retries', 4)
         retry_delay = PERFORMANCE_CONFIG.get('json_retry_delay', 0.5)
         
         for attempt in range(max_retries + 1):
             try:
-                # Adjust prompt for better JSON compliance
+                # Progressively more explicit JSON prompts
                 if attempt == 0:
                     json_prompt = f"{prompt}\n\nIMPORTANT: Respond with valid JSON only. Start with {{ and end with }}. No additional text."
                 elif attempt == 1:
                     json_prompt = f"{prompt}\n\nCRITICAL: Return ONLY valid JSON. No explanations, no markdown, no code blocks. Just pure JSON starting with {{ and ending with }}. Example format: {{\"key\": \"value\", \"number\": 0.5}}"
                 elif attempt == 2:
                     json_prompt = f"{prompt}\n\nJSON ONLY: Return a complete, valid JSON object. Ensure all braces are closed. No truncation allowed. Use double quotes for all strings. End with }}"
-                else:
+                elif attempt == 3:
                     json_prompt = f"{prompt}\n\nSTRICT JSON: Must be parseable by json.loads(). Format: {{\"field1\": \"value1\", \"field2\": 0.5, \"field3\": true}}. No trailing commas. No comments. Complete object only."
+                else:
+                    json_prompt = f"{prompt}\n\nFINAL ATTEMPT - PURE JSON: Return ONLY a valid JSON object that can be parsed by Python's json.loads(). No text before or after. Start with {{ and end with }}. Use double quotes for strings. No trailing commas."
                 
-                # Increase max tokens for later attempts
-                max_tokens = 2000 if attempt == 0 else 4000
+                # Increase max tokens for later attempts to avoid truncation
+                max_tokens = 2000 + (attempt * 1000)  # 2000, 3000, 4000, 5000, 6000
                 
                 # O3 model only supports temperature=1, so don't increment
                 response = await self.query(json_prompt, system_prompt, 1.0, max_tokens)
+                
+                # Log the raw response for debugging (truncated)
+                logger.debug(f"Attempt {attempt+1} raw response (first 200 chars): {response[:200]}")
                 
                 # Enhanced parsing strategies for robust JSON parsing
                 parsing_strategies = [
                     # Strategy 1: Try parsing response as-is (most common case)
                     lambda r: json.loads(r.strip()),
-                    # Strategy 2: Try parsing with different whitespace handling
-                    lambda r: json.loads(r.replace('\n', ' ').replace('\t', ' ').strip()),
-                    # Strategy 3: Extract first complete JSON object
+                    # Strategy 2: Extract first complete JSON object
                     lambda r: self._extract_json_object(r),
-                    # Strategy 4: Clean and parse entire response
+                    # Strategy 3: Clean and parse entire response
                     lambda r: json.loads(self._clean_json_response(r)),
-                    # Strategy 5: Extract content between code blocks
+                    # Strategy 4: Extract content between code blocks
                     lambda r: self._extract_from_code_blocks(r),
-                    # Strategy 6: Try to fix common JSON issues
+                    # Strategy 5: Try to fix common JSON issues
                     lambda r: self._fix_and_parse_json(r),
-                    # Strategy 7: Extract JSON from mixed content
+                    # Strategy 6: Extract JSON from mixed content
                     lambda r: self._extract_json_from_mixed_content(r),
-                    # Strategy 8: Try parsing with relaxed JSON
+                    # Strategy 7: Try parsing with relaxed JSON
                     lambda r: self._parse_relaxed_json(r),
+                    # Strategy 8: Try parsing with different whitespace handling
+                    lambda r: json.loads(r.replace('\n', ' ').replace('\t', ' ').strip()),
                 ]
                 
                 for i, strategy in enumerate(parsing_strategies):
                     try:
                         result = strategy(response)
-                        if isinstance(result, dict):
+                        if isinstance(result, dict) and result:  # Ensure non-empty dict
                             logger.debug(f"JSON parsing succeeded with strategy {i+1} on attempt {attempt+1}")
                             return result
-                    except (json.JSONDecodeError, ValueError, AttributeError) as e:
+                    except (json.JSONDecodeError, ValueError, AttributeError, TypeError) as e:
                         logger.debug(f"JSON parsing strategy {i+1} failed on attempt {attempt+1}: {str(e)}")
                         continue
                 
                 # If we get here, all strategies failed for this attempt
                 logger.warning(f"All JSON parsing strategies failed on attempt {attempt+1}")
+                logger.warning(f"Response that failed to parse: {response[:300]}...")
+                
                 if attempt < max_retries:
                     logger.info(f"Retrying JSON parsing (attempt {attempt+2}/{max_retries+1})...")
                     await asyncio.sleep(retry_delay)
                     continue
                 else:
                     # Final fallback: return a structured error response
-                    logger.error(f"All JSON parsing attempts failed. Final response: {response[:500]}...")
+                    logger.error(f"All JSON parsing attempts failed after {max_retries+1} attempts")
+                    logger.error(f"Final response: {response[:500]}...")
                     return self._create_fallback_response(response)
                     
             except Exception as e:
-                logger.error(f"Query attempt {attempt+1} failed: {str(e)}")
+                logger.error(f"Query attempt {attempt+1} failed with exception: {str(e)}")
                 if attempt < max_retries:
                     await asyncio.sleep(retry_delay)
                     continue
@@ -232,22 +240,199 @@ class LLMInterface:
         return self._create_fallback_response("Maximum retries exceeded")
     
     def _extract_json_object(self, response: str) -> Dict[str, Any]:
-        """Extract the first complete JSON object from response"""
+        """Extract the first complete JSON object from response with proper escape handling"""
+        # Find the first opening brace
         start_idx = response.find('{')
         if start_idx == -1:
             raise ValueError("No JSON object found")
         
+        # Track brace nesting to find the complete object
         brace_count = 0
-        for i, char in enumerate(response[start_idx:], start_idx):
-            if char == '{':
-                brace_count += 1
-            elif char == '}':
-                brace_count -= 1
-                if brace_count == 0:
-                    json_str = response[start_idx:i+1]
-                    return json.loads(json_str)
+        in_string = False
+        i = start_idx
         
-        raise ValueError("Incomplete JSON object")
+        while i < len(response):
+            char = response[i]
+            
+            if in_string:
+                # Handle escape sequences properly
+                if char == '\\':
+                    # Skip the next character (it's escaped)
+                    i += 2
+                    continue
+                elif char == '"':
+                    # End of string
+                    in_string = False
+            else:
+                # Not in string
+                if char == '"':
+                    # Start of string
+                    in_string = True
+                elif char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        # Found complete JSON object
+                        json_str = response[start_idx:i+1]
+                        try:
+                            return json.loads(json_str)
+                        except json.JSONDecodeError as e:
+                            # Try to fix common issues before giving up
+                            try:
+                                fixed_json = self._fix_json_string(json_str)
+                                return json.loads(fixed_json)
+                            except json.JSONDecodeError:
+                                # If fixing fails, try more aggressive fixes
+                                return self._aggressive_json_fix(json_str)
+            
+            i += 1
+        
+        raise ValueError("Incomplete JSON object - no matching closing brace found")
+    
+    def _fix_json_string(self, json_str: str) -> str:
+        """Fix common JSON string issues with proper escaping handling"""
+        import re
+        
+        # 1. Remove trailing commas before closing braces/brackets
+        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        
+        # 2. Handle single quotes to double quotes conversion carefully
+        # First, protect already escaped quotes
+        json_str = json_str.replace('\\"', '___ESCAPED_QUOTE___')
+        json_str = json_str.replace("\\'", '___ESCAPED_SINGLE_QUOTE___')
+        
+        # Convert single-quoted strings to double-quoted strings
+        # This handles both keys and values
+        def convert_single_quoted_strings(text):
+            result = ""
+            i = 0
+            while i < len(text):
+                if text[i] == "'":
+                    # Found start of single-quoted string
+                    start = i
+                    i += 1
+                    # Find the end of the string
+                    while i < len(text) and text[i] != "'":
+                        if text[i] == '\\':
+                            i += 2  # Skip escaped character
+                        else:
+                            i += 1
+                    
+                    if i < len(text):  # Found closing quote
+                        # Extract content and convert to double quotes
+                        content = text[start+1:i]
+                        # Escape any double quotes in the content
+                        content = content.replace('"', '\\"')
+                        result += f'"{content}"'
+                        i += 1
+                    else:
+                        # No closing quote found, just add the single quote
+                        result += text[start]
+                        i = start + 1
+                else:
+                    result += text[i]
+                    i += 1
+            return result
+        
+        json_str = convert_single_quoted_strings(json_str)
+        
+        # 3. Fix missing quotes around keys (but preserve already quoted keys)
+        json_str = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)', r'\1"\2"\3', json_str)
+        
+        # 4. Restore escaped quotes
+        json_str = json_str.replace('___ESCAPED_QUOTE___', '\\"')
+        json_str = json_str.replace('___ESCAPED_SINGLE_QUOTE___', "'")
+        
+        # 5. Fix improperly escaped quotes in string values
+        def fix_inner_quotes(match):
+            key_part = match.group(1)
+            value_part = match.group(2)
+            end_part = match.group(3)
+            
+            # Escape any unescaped quotes in the value part
+            fixed_value = re.sub(r'(?<!\\)"', '\\"', value_part)
+            return f'{key_part}"{fixed_value}"{end_part}'
+        
+        # Apply the fix for unescaped quotes in string values
+        json_str = re.sub(r'(:\s*")([^"]*)"(\s*[,}\]])', fix_inner_quotes, json_str)
+        
+        return json_str
+    
+    def _aggressive_json_fix(self, json_str: str) -> Dict[str, Any]:
+        """Aggressive JSON fixing for severely malformed JSON"""
+        import re
+        
+        # Start with basic cleaning
+        cleaned = json_str.strip()
+        
+        # Remove any text before first { and after last }
+        start = cleaned.find('{')
+        end = cleaned.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            cleaned = cleaned[start:end+1]
+        
+        # Fix common escaping issues
+        # 1. Fix double escaping
+        cleaned = cleaned.replace('\\\\', '\\')
+        
+        # 2. Fix unescaped newlines in strings
+        cleaned = re.sub(r'(?<!\\)\n', '\\n', cleaned)
+        cleaned = re.sub(r'(?<!\\)\r', '\\r', cleaned)
+        cleaned = re.sub(r'(?<!\\)\t', '\\t', cleaned)
+        
+        # 3. Fix unescaped quotes in string values
+        def fix_string_content(match):
+            key = match.group(1)
+            value = match.group(2)
+            # Escape any unescaped quotes in the value
+            fixed_value = re.sub(r'(?<!\\)"', '\\"', value)
+            return f'"{key}": "{fixed_value}"'
+        
+        # Apply string content fixing
+        cleaned = re.sub(r'"([^"]+)":\s*"([^"]*(?:\\.[^"]*)*)"', fix_string_content, cleaned)
+        
+        # 4. Remove trailing commas
+        cleaned = re.sub(r',(\s*[}\]])', r'\1', cleaned)
+        
+        # 5. Fix missing quotes around keys
+        cleaned = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)', r'\1"\2"\3', cleaned)
+        
+        # 6. Fix boolean and null values that might be quoted
+        cleaned = re.sub(r':\s*"(true|false|null)"\s*([,}\]])', r': \1\2', cleaned)
+        
+        # 7. Fix numbers that might be quoted
+        cleaned = re.sub(r':\s*"(\d+\.?\d*)"(\s*[,}\]])', r': \1\2', cleaned)
+        
+        # 8. Handle incomplete JSON by adding missing closing braces
+        open_braces = cleaned.count('{')
+        close_braces = cleaned.count('}')
+        if open_braces > close_braces:
+            cleaned += '}' * (open_braces - close_braces)
+        
+        # 9. Remove incomplete key-value pairs at the end
+        lines = cleaned.split('\n')
+        for i in range(len(lines) - 1, -1, -1):
+            line = lines[i].strip()
+            if line and ':' in line and not line.endswith((',', '}', ']')):
+                # Remove incomplete line
+                lines = lines[:i]
+                break
+        
+        cleaned = '\n'.join(lines)
+        if not cleaned.endswith('}'):
+            cleaned += '}'
+        
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Final fallback: create a minimal valid JSON
+            return {
+                "error": "json_parsing_failed",
+                "original_content": json_str[:100],
+                "confidence": 0.0,
+                "solution": "Failed to parse JSON response"
+            }
     
     def _clean_json_response(self, response: str) -> str:
         """Clean response for JSON parsing"""
@@ -266,12 +451,26 @@ class LLMInterface:
             "JSON response:",
             "Response:",
             "```json",
-            "```"
+            "```",
+            "Here is the JSON:",
+            "The JSON is:",
+            "JSON:",
         ]
         
         for prefix in prefixes_to_remove:
-            if response.startswith(prefix):
+            if response.lower().startswith(prefix.lower()):
                 response = response[len(prefix):].strip()
+        
+        # Remove common suffixes
+        suffixes_to_remove = [
+            "```",
+            "That's the JSON response.",
+            "This is the JSON.",
+        ]
+        
+        for suffix in suffixes_to_remove:
+            if response.lower().endswith(suffix.lower()):
+                response = response[:-len(suffix)].strip()
         
         return response
     
@@ -289,7 +488,7 @@ class LLMInterface:
         raise ValueError("No JSON found in code blocks")
     
     def _fix_and_parse_json(self, response: str) -> Dict[str, Any]:
-        """Fix common JSON issues and parse"""
+        """Fix common JSON issues and parse with proper escaping handling"""
         import re
         
         # Clean the response
@@ -305,18 +504,94 @@ class LLMInterface:
         if end_idx != -1:
             cleaned = cleaned[:end_idx + 1]
         
-        # Fix escaped quotes that shouldn't be escaped
-        cleaned = cleaned.replace('\\"', '"')
+        # Step 1: Protect existing escape sequences
+        escape_map = {
+            '\\"': '___ESCAPED_QUOTE___',
+            '\\\\': '___ESCAPED_BACKSLASH___',
+            '\\n': '___ESCAPED_NEWLINE___',
+            '\\r': '___ESCAPED_RETURN___',
+            '\\t': '___ESCAPED_TAB___',
+            '\\/': '___ESCAPED_SLASH___',
+        }
         
-        # Fix trailing commas
+        for original, placeholder in escape_map.items():
+            cleaned = cleaned.replace(original, placeholder)
+        
+        # Step 2: Fix common JSON issues
+        # 1. Fix trailing commas
         cleaned = re.sub(r',(\s*[}\]])', r'\1', cleaned)
         
-        # Fix incomplete strings (common issue)
-        # If a string ends with "..." and no closing quote, add the closing quote
+        # 2. Fix unquoted keys
+        cleaned = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)', r'\1"\2"\3', cleaned)
+        
+        # 3. Fix single quotes to double quotes (but preserve content)
+        # First handle single-quoted strings
+        def fix_single_quotes(match):
+            content = match.group(1)
+            # Escape any double quotes in the content
+            content = content.replace('"', '\\"')
+            return f'"{content}"'
+        
+        # Replace single-quoted strings with double-quoted ones
+        cleaned = re.sub(r"'([^']*)'", fix_single_quotes, cleaned)
+        
+        # 4. Fix unescaped quotes in string values
+        def fix_unescaped_quotes(match):
+            prefix = match.group(1)
+            content = match.group(2)
+            suffix = match.group(3)
+            
+            # Escape any unescaped quotes in the content
+            fixed_content = content.replace('"', '\\"')
+            return f'{prefix}"{fixed_content}"{suffix}'
+        
+        # Apply to string values (not keys)
+        cleaned = re.sub(r'(:\s*")([^"]*)"(\s*[,}\]])', fix_unescaped_quotes, cleaned)
+        
+        # 5. Fix incomplete strings (common issue)
         cleaned = re.sub(r'([^"\\])\.\.\."\s*([,}\]])', r'\1..."\2', cleaned)
         
+        # 6. Fix missing quotes around string values (but not numbers/booleans)
+        cleaned = re.sub(r':\s*([a-zA-Z][^,}\]]*[^,}\]\s])(\s*[,}\]])', r': "\1"\2', cleaned)
+        
+        # 7. Fix boolean and null values that might be quoted
+        cleaned = re.sub(r':\s*"(true|false|null)"\s*([,}\]])', r': \1\2', cleaned)
+        
+        # 8. Fix numbers that might be quoted
+        cleaned = re.sub(r':\s*"(\d+\.?\d*)"(\s*[,}\]])', r': \1\2', cleaned)
+        
+        # 9. Handle truncated JSON by adding missing closing braces
+        open_braces = cleaned.count('{')
+        close_braces = cleaned.count('}')
+        if open_braces > close_braces:
+            cleaned += '}' * (open_braces - close_braces)
+        
+        # Step 3: Restore escape sequences
+        for original, placeholder in escape_map.items():
+            cleaned = cleaned.replace(placeholder, original)
+        
         # Try to parse the fixed JSON
-        return json.loads(cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            # If still failing, try one more aggressive fix
+            # Remove any incomplete key-value pairs at the end
+            lines = cleaned.split('\n')
+            for i in range(len(lines) - 1, -1, -1):
+                line = lines[i].strip()
+                if ':' in line and not line.endswith((',', '}', ']')):
+                    lines = lines[:i]
+                    break
+            
+            cleaned = '\n'.join(lines)
+            if not cleaned.endswith('}'):
+                cleaned += '}'
+            
+            try:
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                # Final fallback to aggressive fix
+                return self._aggressive_json_fix(cleaned)
     
     def _extract_json_from_mixed_content(self, response: str) -> Dict[str, Any]:
         """Extract JSON from mixed content with text and JSON"""
@@ -372,10 +647,12 @@ class LLMInterface:
     
     def _create_fallback_response(self, original_response: str) -> Dict[str, Any]:
         """Create a fallback response when JSON parsing fails"""
+        import re
+        
         # Try to extract any useful information from the partial response
         fallback = {
             "error": "json_parsing_failed",
-            "original_response": original_response[:500],  # Truncate for safety
+            "original_response": original_response[:500] if original_response else "No response",
             "confidence": 0.1,
             "solution": "JSON parsing failed - using fallback response",
             "reasoning_steps": ["Failed to parse LLM response as JSON"],
@@ -406,18 +683,48 @@ class LLMInterface:
             "uncertainty_sources": ["Failed to parse response"],
             "causal_fidelity_score": 0.0,
             "metacognitive_score": 0.1,
-            "phenomenal_assessment_score": 0.0
+            "phenomenal_assessment_score": 0.0,
+            "patterns_used": [],
+            "scaling_approach": "fallback",
+            "approximation_method": "error_handling"
         }
         
-        # Try to extract any numeric values from the partial response
-        import re
-        try:
-            # Look for confidence or score values in the text
-            score_matches = re.findall(r'"(?:confidence|score)":\s*([0-9.]+)', original_response)
-            if score_matches:
-                fallback["confidence"] = min(1.0, max(0.0, float(score_matches[0])))
-        except:
-            pass
+        # Try to extract any useful information from the partial response
+        if original_response:
+            try:
+                # Look for confidence or score values in the text
+                confidence_matches = re.findall(r'(?:confidence|score)["\']?\s*[:=]\s*([0-9.]+)', original_response, re.IGNORECASE)
+                if confidence_matches:
+                    confidence_val = float(confidence_matches[0])
+                    fallback["confidence"] = min(1.0, max(0.0, confidence_val))
+                
+                # Try to extract any solution text
+                solution_patterns = [
+                    r'(?:solution|answer)["\']?\s*[:=]\s*["\']([^"\']+)["\']',
+                    r'(?:solution|answer)["\']?\s*[:=]\s*([^,}\]]+)',
+                ]
+                
+                for pattern in solution_patterns:
+                    solution_matches = re.findall(pattern, original_response, re.IGNORECASE)
+                    if solution_matches:
+                        fallback["solution"] = solution_matches[0].strip()
+                        break
+                
+                # Try to extract reasoning steps
+                reasoning_patterns = [
+                    r'(?:reasoning_steps|steps)["\']?\s*[:=]\s*\[([^\]]+)\]',
+                    r'(?:reasoning|steps)["\']?\s*[:=]\s*["\']([^"\']+)["\']',
+                ]
+                
+                for pattern in reasoning_patterns:
+                    reasoning_matches = re.findall(pattern, original_response, re.IGNORECASE)
+                    if reasoning_matches:
+                        fallback["reasoning_steps"] = [reasoning_matches[0].strip()]
+                        break
+                        
+            except Exception as e:
+                logger.debug(f"Error extracting information from partial response: {e}")
+                pass
             
         return fallback
 

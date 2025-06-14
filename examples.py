@@ -69,17 +69,16 @@ async def example_t1_reasoning():
     print("-" * 40)
     
     hanoi_problems = [
-        ("In the Quantum Tower of Hanoi, solve the 3-disc problem where discs exist in superposition states and each move collapses the wave function. What is the minimum number of moves required?", 3),
-        ("Solve the Multidimensional Tower of Hanoi with 4 discs where each disc can move through 3D space but must maintain the size constraint across all spatial dimensions.", 3),
-        ("In the Temporal Tower of Hanoi with 5 discs, each move creates a timeline branch. What is the minimum number of moves in the optimal timeline to transfer all discs?", 4),
-        ("Solve the Hyperbolic Tower of Hanoi with 6 discs on a hyperbolic plane where the geometry affects valid moves. Calculate the minimum moves considering non-Euclidean constraints.", 4),
-        ("In the Probabilistic Tower of Hanoi with 7 discs, each move has a 95% success rate. What is the expected minimum number of move attempts to guarantee completion?", 4),
-        ("Solve the Quantum-Entangled Tower of Hanoi with 8 discs where moving one disc instantaneously affects its entangled partner disc. What is the minimum number of coordinated moves?", 5)
+        ("In the Quantum Tower of Hanoi, solve the 3-disc problem where discs exist in superposition states and each move collapses the wave function. What is the minimum number of moves required?", 3, 3),
+        ("Solve the Multidimensional Tower of Hanoi with 4 discs where each disc can move through 3D space but must maintain the size constraint across all spatial dimensions.", 3, 4),
+        ("In the Temporal Tower of Hanoi with 5 discs, each move creates a timeline branch. What is the minimum number of moves in the optimal timeline to transfer all discs?", 4, 5),
+        ("Solve the Hyperbolic Tower of Hanoi with 6 discs on a hyperbolic plane where the geometry affects valid moves. Calculate the minimum moves considering non-Euclidean constraints.", 4, 6),
+        ("In the Probabilistic Tower of Hanoi with 7 discs, each move has a 95% success rate. What is the expected minimum number of move attempts to guarantee completion?", 4, 7),
+        ("Solve the Quantum-Entangled Tower of Hanoi with 8 discs where moving one disc instantaneously affects its entangled partner disc. What is the minimum number of coordinated moves?", 5, 8)
     ]
     
-    for problem, complexity in hanoi_problems:
+    for problem, complexity, discs in hanoi_problems:
         result = await sdk.reason(problem, "tower_hanoi", "puzzles", complexity)
-        discs = int(problem.split()[5])
         expected_moves = 2**discs - 1
         print(f"Complexity: {discs} discs (Expected: {expected_moves:,} moves)")
         print(f"Solution: {result.solution}")
