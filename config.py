@@ -12,7 +12,7 @@ from typing import Dict, Any
 # OpenAI Configuration
 OPENAI_CONFIG = {
     "api_key": os.getenv("OPENAI_API_KEY"),
-    "default_model": "o3",
+    "default_model": "gpt-4.1-nano",
     "fallback_model": "gpt-3.5-turbo",
     "max_completion_tokens": 2000,
     "temperature": {

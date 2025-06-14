@@ -101,7 +101,7 @@ class ExtendedUnderstandingResult:
 class LLMInterface:
     """Interface to OpenAI's LLM for all reasoning tasks"""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "o3"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-nano"):
         self.client = openai.OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
         self.model = model
         
@@ -310,6 +310,13 @@ class T1ReasoningEngine:
         self.llm = llm
         self.state_machine = ReasoningStateMachine(llm)
     
+    def _safe_float(self, value, default=0.0):
+        """Safely convert value to float"""
+        try:
+            return float(value) if value is not None else default
+        except (ValueError, TypeError):
+            return default
+    
     async def reason(self, context: ReasoningContext) -> ReasoningResult:
         """Main reasoning method implementing T1 tautology"""
         start_time = time.time()
@@ -385,7 +392,7 @@ class T1ReasoningEngine:
             internal_state=sm_context.get('internal_representation', {}),
             mode_used=ReasoningMode.SLOW_DELIBERATIVE,
             time_taken=end_time - start_time,
-            uncertainty_estimate=1.0 - sm_context.get('confidence', 0.0),
+            uncertainty_estimate=1.0 - self._safe_float(sm_context.get('confidence', 0.0)),
             causal_graph=sm_context.get('causal_graph'),
             state_transitions=state_transitions,
             tautology_compliance=t1_compliance
@@ -1466,7 +1473,7 @@ class TUStarExtendedUnderstandingEngine:
 class AgenticReasoningSystemSDK:
     """Main SDK class implementing the complete Bhatt Conjectures framework"""
     
-    def __init__(self, openai_api_key: Optional[str] = None, model: str = "o3"):
+    def __init__(self, openai_api_key: Optional[str] = None, model: str = "gpt-4.1-nano"):
         """Initialize the Agentic Reasoning System SDK"""
         self.llm = LLMInterface(openai_api_key, model)
         self.t1_engine = T1ReasoningEngine(self.llm)

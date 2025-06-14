@@ -59,12 +59,12 @@ The main SDK class that provides access to all tautology implementations.
 
 ```python
 class AgenticReasoningSystemSDK:
-    def __init__(self, openai_api_key: Optional[str] = None, model: str = "o3")
+    def __init__(self, openai_api_key: Optional[str] = None, model: str = "gpt-4.1-nano")
 ```
 
 **Parameters:**
 - `openai_api_key`: OpenAI API key (optional, can use environment variable)
-- `model`: OpenAI model to use (default: "o3")
+- `model`: OpenAI model to use (default: "gpt-4.1-nano")
 
 ### LLMInterface
 
@@ -72,7 +72,7 @@ Interface to OpenAI's language models.
 
 ```python
 class LLMInterface:
-    def __init__(self, api_key: Optional[str] = None, model: str = "o3")
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-nano")
     async def query(self, prompt: str, system_prompt: str = "", temperature: float = 1.0, max_completion_tokens: int = 2000) -> str
     async def query_json(self, prompt: str, system_prompt: str = "", temperature: float = 0.3) -> Dict[str, Any]
 ```
