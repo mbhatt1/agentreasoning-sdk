@@ -389,13 +389,15 @@ python examples/examples.py --tu               # TU Understanding examples only
 python examples/examples.py --tustar           # TU* Extended Understanding examples only
 python examples/examples.py --comprehensive    # Comprehensive Analysis examples only
 python examples/examples.py --edge-cases       # Edge Cases examples only
+python examples/examples.py --hanoi-20         # 20-disk Hanoi ultra-high complexity examples
 
 # Run multiple categories
 python examples/examples.py --t1 --tu          # T1 and TU examples only
 python examples/examples.py --tu --tustar      # TU and TU* examples only
 
-# Run unlimited capability demonstrations
-python examples/unlimited_demo.py
+# Run specialized demonstrations
+python examples/unlimited_demo.py              # Unlimited capability demonstrations
+python examples/hanoi_20_disk_demo.py          # Dedicated 20-disk Hanoi complexity demo
 
 # Get help and list categories
 python examples/examples.py --help             # Show all available options

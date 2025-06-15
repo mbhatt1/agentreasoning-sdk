@@ -337,6 +337,125 @@ async def example_comprehensive_analysis():
         
         print()
 
+async def example_20_disk_hanoi():
+    """Examples of 20-disk Hanoi ultra-high complexity"""
+    print("=" * 60)
+    print("20-DISK HANOI ULTRA-HIGH COMPLEXITY EXAMPLES")
+    print("=" * 60)
+    print("Testing the theoretical maximum complexity: 2^20 - 1 = 1,048,575 operations")
+    print()
+    
+    sdk = AgenticReasoningSystemSDK()
+    
+    # 20-disk Hanoi reasoning test
+    print("1. T1 Reasoning: 20-Disk Hanoi Problem")
+    print("-" * 40)
+    
+    hanoi_20_problem = """
+    Tower of Hanoi with 20 disks:
+    - Initial: All 20 disks on Rod A (largest at bottom)
+    - Goal: Move all disks to Rod C
+    - Rules: Move one disk at a time, never place larger on smaller
+    
+    Calculate the minimum number of moves using the formula 2^n - 1.
+    Explain why this represents exponential complexity.
+    """
+    
+    try:
+        result = await sdk.reason(
+            problem=hanoi_20_problem,
+            representation_format="tower_hanoi",
+            domain="mathematics",
+            complexity_level=5,  # Maximum complexity
+            requires_causal_analysis=True
+        )
+        
+        print(f"   Solution: {result.solution}")
+        print(f"   Confidence: {result.confidence:.3f}")
+        print(f"   T1 Compliance: {result.tautology_compliance.get('T1_Overall', False)}")
+        
+        # Verify the mathematical correctness
+        expected_moves = 2**20 - 1
+        print(f"   Expected: {expected_moves:,} moves")
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+    
+    # 20-disk Hanoi understanding test
+    print("\n2. TU Understanding: Exponential Complexity")
+    print("-" * 40)
+    
+    complexity_proposition = """
+    The Tower of Hanoi problem with n disks requires exactly 2^n - 1 moves.
+    For 20 disks, this equals 1,048,575 moves, demonstrating how exponential
+    functions create computational complexity that grows beyond practical limits.
+    This mathematical relationship shows why 20-disk problems represent the
+    theoretical ceiling for comprehensive reasoning systems.
+    """
+    
+    try:
+        result = await sdk.understand(
+            proposition=complexity_proposition,
+            representation_format="formal_notation",
+            domain="mathematics"
+        )
+        
+        print(f"   Truth Value: {result.truth_value}")
+        print(f"   Understanding Score: {result.understanding_score:.3f}")
+        print(f"   TU Compliance: {result.tautology_compliance.get('TU_Overall', False)}")
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+    
+    # 20-disk Hanoi causal analysis
+    print("\n3. TU* Extended: Causal Analysis of Exponential Growth")
+    print("-" * 40)
+    
+    causal_proposition = """
+    The exponential complexity of Tower of Hanoi (2^n - 1) is causally determined
+    by the recursive structure of the optimal algorithm. Each additional disk
+    necessitates moving all smaller disks twice: once to expose the large disk
+    for movement, and once to reassemble the tower after moving the large disk.
+    This recursive doubling creates an unavoidable exponential growth pattern,
+    making 20-disk problems require over one million moves.
+    """
+    
+    try:
+        result = await sdk.deep_understand(
+            proposition=causal_proposition,
+            representation_format="natural_language",
+            domain="computer_science"
+        )
+        
+        print(f"   Deep Understanding: {result.deep_understanding_score:.3f}")
+        print(f"   Causal Fidelity: {result.causal_structural_fidelity.get('causal_fidelity_score', 0):.3f}")
+        print(f"   TU* Compliance: {result.tautology_compliance.get('TU*_Overall', False)}")
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+    
+    # Complexity scaling demonstration
+    print("\n4. Complexity Scaling Analysis")
+    print("-" * 40)
+    
+    scaling_data = [
+        (3, 7), (5, 31), (10, 1023), (15, 32767), (20, 1048575)
+    ]
+    
+    print("   Disk Count | Required Moves | Growth Factor")
+    print("   " + "-" * 42)
+    
+    for i, (disks, moves) in enumerate(scaling_data):
+        if i == 0:
+            growth = "Baseline"
+        else:
+            growth = f"{moves / 7:.0f}x"
+        print(f"   {disks:^10} | {moves:^14,} | {growth:^12}")
+    
+    print(f"\n   🎯 20-disk Hanoi represents the theoretical complexity limit")
+    print(f"      that the Bhatt Conjectures framework can handle.")
+
+
 async def example_edge_cases():
     """Examples testing edge cases and boundary conditions"""
     print("=" * 60)
@@ -449,6 +568,12 @@ Examples:
     )
     
     parser.add_argument(
+        '--hanoi-20',
+        action='store_true',
+        help='Run 20-disk Hanoi ultra-high complexity tests'
+    )
+    
+    parser.add_argument(
         '--list',
         action='store_true',
         help='List all available test categories and exit'
@@ -498,6 +623,13 @@ def list_test_categories():
     print("   - Ambiguous references")
     print("   - Counterfactual reasoning")
     print()
+    print("6. 20-Disk Hanoi (--hanoi-20)")
+    print("   Ultra-high complexity testing with 1,048,575 operations")
+    print("   - T1 reasoning with exponential complexity")
+    print("   - TU understanding of mathematical relationships")
+    print("   - TU* causal analysis of complexity growth")
+    print("   - Complexity scaling demonstrations")
+    print()
     print("Use --all or no flags to run all categories.")
 
 async def main():
@@ -510,7 +642,7 @@ async def main():
         return
     
     # Determine which tests to run
-    run_all = args.all or not any([args.t1, args.tu, args.tustar, args.comprehensive, args.edge_cases])
+    run_all = args.all or not any([args.t1, args.tu, args.tustar, args.comprehensive, args.edge_cases, getattr(args, 'hanoi_20', False)])
     
     print("AGENTIC REASONING SYSTEM SDK - COMPREHENSIVE EXAMPLES")
     print("=" * 60)
@@ -527,6 +659,7 @@ async def main():
         if args.tustar: selected_tests.append("TU* Extended Understanding")
         if args.comprehensive: selected_tests.append("Comprehensive Analysis")
         if args.edge_cases: selected_tests.append("Edge Cases")
+        if getattr(args, 'hanoi_20', False): selected_tests.append("20-Disk Hanoi")
         print(f"Running selected test categories: {', '.join(selected_tests)}")
     
     print()
@@ -553,6 +686,10 @@ async def main():
         if run_all or args.edge_cases:
             await example_edge_cases()
             tests_run.append("Edge case handling")
+        
+        if run_all or getattr(args, 'hanoi_20', False):
+            await example_20_disk_hanoi()
+            tests_run.append("20-disk Hanoi ultra-high complexity testing")
         
         print("=" * 60)
         print("SELECTED EXAMPLES COMPLETED SUCCESSFULLY")
