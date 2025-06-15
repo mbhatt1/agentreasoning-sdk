@@ -375,28 +375,51 @@ flowchart LR
 
 ## Examples
 
-### Running Test Categories
+### Running Examples
 
-The examples.py script now supports command-line flags to run specific test categories:
+The examples are now organized in the `examples/` directory:
 
 ```bash
-# Run all test categories (default)
-python examples.py
+# Run all example categories (default)
+python examples/examples.py
 
 # Run specific categories
-python examples.py --t1               # T1 Reasoning tests only
-python examples.py --tu               # TU Understanding tests only
-python examples.py --tustar           # TU* Extended Understanding tests only
-python examples.py --comprehensive    # Comprehensive Analysis tests only
-python examples.py --edge-cases       # Edge Cases tests only
+python examples/examples.py --t1               # T1 Reasoning examples only
+python examples/examples.py --tu               # TU Understanding examples only
+python examples/examples.py --tustar           # TU* Extended Understanding examples only
+python examples/examples.py --comprehensive    # Comprehensive Analysis examples only
+python examples/examples.py --edge-cases       # Edge Cases examples only
 
 # Run multiple categories
-python examples.py --t1 --tu          # T1 and TU tests only
-python examples.py --tu --tustar      # TU and TU* tests only
+python examples/examples.py --t1 --tu          # T1 and TU examples only
+python examples/examples.py --tu --tustar      # TU and TU* examples only
+
+# Run unlimited capability demonstrations
+python examples/unlimited_demo.py
 
 # Get help and list categories
-python examples.py --help             # Show all available options
-python examples.py --list             # List all test categories with descriptions
+python examples/examples.py --help             # Show all available options
+python examples/examples.py --list             # List all example categories with descriptions
+```
+
+### Running Tests
+
+The test suite is now consolidated in the `tests/` directory:
+
+```bash
+# Run all tests with pytest
+python -m pytest tests/ -v
+
+# Run specific test categories
+python -m pytest tests/test_comprehensive.py::TestBasicFunctionality -v
+python -m pytest tests/test_comprehensive.py::TestJSONParsing -v
+python -m pytest tests/test_comprehensive.py::TestExtremeComplexity -v
+
+# Run with coverage
+python -m pytest tests/ --cov=agentic_reasoning_system --cov-report=html
+
+# Run tests manually (without pytest)
+python tests/test_comprehensive.py
 ```
 
 ### Different Representation Formats

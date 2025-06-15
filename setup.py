@@ -41,9 +41,15 @@ setup(
         "dev": [
             "pytest>=6.0",
             "pytest-asyncio>=0.18.0",
+            "pytest-cov>=4.0",
             "black>=22.0",
             "flake8>=4.0",
             "mypy>=0.950",
+        ],
+        "test": [
+            "pytest>=6.0",
+            "pytest-asyncio>=0.18.0",
+            "pytest-cov>=4.0",
         ],
     },
     entry_points={
