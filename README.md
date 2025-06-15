@@ -636,15 +636,6 @@ If you use this SDK in research, please cite the original Bhatt Conjectures pape
 Bhatt, M. (2025). Bhatt Conjectures: On Necessary-But-Not-Sufficient Benchmark Tautology for Human Like Reasoning.
 ```
 
-## Author's Reference Implementation
-
-This is the **reference implementation** of the Bhatt Conjectures framework, developed by the original author. This implementation serves as the authoritative standard for:
-
-- **Tautological Compliance Testing**: Definitive implementation of T1, TU, and TU* requirements
-- **Complexity Benchmarking**: Reference standard for 20-disk Hanoi complexity testing
-- **Research Validation**: Authoritative framework for AI reasoning capability assessment
-- **Academic Standards**: Official implementation for research and publication use
-
 As the reference implementation, this SDK defines the interpretation of the Bhatt Conjectures and serves as the standard for all future implementations.
 
 ## Support
