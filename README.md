@@ -1,5 +1,7 @@
 # Agentic Reasoning System SDK : Implementation of Bhatt Conjectures framework
 
+[Paper here](https://arxiv.org/submit/6543948/view)
+
 An mock implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **high complexity testing** including 20-disk Hanoi level problems (1,048,575 operations).
 
 Bhatt Conjectures is a set of 3 conjectures about AI Human Like Reasoning, which moves the conversation from "Can AI Think" to "How much can AI think".
