@@ -2,7 +2,7 @@
 
 [Paper here](https://arxiv.org/pdf/2506.11423)
 
-An mock implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities using LLMs. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **high complexity testing** including 20-disk Hanoi level problems (1,048,575 operations).
+An example mock implementation of the **Bhatt Conjectures** framework for evaluating AI reasoning and understanding capabilities using LLMs. This SDK provides a comprehensive system that uses OpenAI's **GPT-4.1 nano model** to implement the three core tautologies from the research paper with **high complexity testing** including 20-disk Hanoi level problems (1,048,575 operations).
 
 Bhatt Conjectures is a set of 3 conjectures about AI Human Like Reasoning, which moves the conversation from "Can AI Think" to "How much can AI think".
 
