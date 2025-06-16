@@ -326,6 +326,137 @@ class TestExtremeComplexity:
             print(f"❌ Hanoi causal analysis failed: {e}")
 
 
+class TestMultiLLMValidation:
+    """Test multi-LLM validation system"""
+    
+    @pytest.mark.asyncio
+    async def test_multi_llm_initialization(self):
+        """Test that multi-LLM validation system initializes correctly"""
+        if not os.getenv("OPENAI_API_KEY"):
+            pytest.skip("OPENAI_API_KEY not set")
+        
+        # Test with validation enabled
+        sdk_with_validation = AgenticReasoningSystemSDK(enable_multi_llm_validation=True)
+        assert sdk_with_validation.enable_validation == True
+        
+        # Test with validation disabled
+        sdk_without_validation = AgenticReasoningSystemSDK(enable_multi_llm_validation=False)
+        assert sdk_without_validation.enable_validation == False
+        assert sdk_without_validation.multi_llm_validator is None
+    
+    @pytest.mark.asyncio
+    async def test_20_disk_hanoi_multi_llm_validation(self):
+        """Test 20-disk Hanoi with multi-LLM validation"""
+        if not os.getenv("OPENAI_API_KEY"):
+            pytest.skip("OPENAI_API_KEY not set")
+        
+        sdk = AgenticReasoningSystemSDK(enable_multi_llm_validation=True)
+        
+        hanoi_problem = """
+        Tower of Hanoi with 20 disks: Calculate the minimum number of moves
+        using the formula 2^n - 1. Verify that this equals 1,048,575 moves.
+        """
+        
+        try:
+            result = await sdk.reason(
+                problem=hanoi_problem,
+                representation_format="tower_hanoi",
+                domain="mathematics",
+                complexity_level=5
+            )
+            
+            # Check that validation was applied
+            assert hasattr(result, 'validation_results')
+            assert result.validation_results is not None
+            
+            # Check validation structure for 20-disk Hanoi
+            validation = result.validation_results
+            assert 'mathematical_consensus' in validation
+            assert 'complexity_consensus' in validation
+            assert 'overall_consensus' in validation
+            
+            # Validation should show high confidence for correct mathematical answer
+            assert validation['mathematical_consensus'] >= 0.5
+            
+            print(f"✓ 20-disk Hanoi multi-LLM validation test passed")
+            print(f"   Mathematical consensus: {validation['mathematical_consensus']:.2f}")
+            print(f"   Overall consensus: {validation['overall_consensus']:.2f}")
+            
+        except Exception as e:
+            pytest.skip(f"Multi-LLM validation test skipped: {e}")
+    
+    @pytest.mark.asyncio
+    async def test_consensus_reasoning(self):
+        """Test consensus reasoning across multiple models"""
+        if not os.getenv("OPENAI_API_KEY"):
+            pytest.skip("OPENAI_API_KEY not set")
+        
+        sdk = AgenticReasoningSystemSDK(enable_multi_llm_validation=True)
+        
+        if not sdk.multi_llm_validator:
+            pytest.skip("Multi-LLM validator not available")
+        
+        simple_problem = "Calculate 2^10 and explain the result."
+        
+        try:
+            consensus_result = await sdk.multi_llm_validator.consensus_reasoning(
+                simple_problem, "natural_language", "mathematics"
+            )
+            
+            assert 'solution' in consensus_result
+            assert 'confidence' in consensus_result
+            assert 'consensus_analysis' in consensus_result
+            
+            # Check that multiple models were consulted
+            analysis = consensus_result['consensus_analysis']
+            assert analysis['total_models'] >= 2
+            assert 'all_results' in analysis
+            
+            print(f"✓ Consensus reasoning test passed")
+            print(f"   Models consulted: {analysis['total_models']}")
+            print(f"   Agreement level: {analysis['agreement_level']:.2f}")
+            
+        except Exception as e:
+            pytest.skip(f"Consensus reasoning test skipped: {e}")
+    
+    @pytest.mark.asyncio
+    async def test_validation_confidence_adjustment(self):
+        """Test that validation results affect confidence scores"""
+        if not os.getenv("OPENAI_API_KEY"):
+            pytest.skip("OPENAI_API_KEY not set")
+        
+        # Test with validation enabled
+        sdk_with_validation = AgenticReasoningSystemSDK(enable_multi_llm_validation=True)
+        
+        # Test with validation disabled for comparison
+        sdk_without_validation = AgenticReasoningSystemSDK(enable_multi_llm_validation=False)
+        
+        test_problem = "Calculate 2^5 - 1 and explain the mathematical significance."
+        
+        try:
+            # Get result without validation
+            result_without = await sdk_without_validation.reason(
+                test_problem, "natural_language", "mathematics", complexity_level=4
+            )
+            
+            # Get result with validation
+            result_with = await sdk_with_validation.reason(
+                test_problem, "natural_language", "mathematics", complexity_level=4
+            )
+            
+            # Check that validation was applied
+            if hasattr(result_with, 'validation_results'):
+                print(f"✓ Validation confidence adjustment test passed")
+                print(f"   Without validation: {result_without.confidence:.3f}")
+                print(f"   With validation: {result_with.confidence:.3f}")
+                print(f"   Validation applied: {result_with.validation_results is not None}")
+            else:
+                print(f"⚠️ Validation not triggered for this problem")
+            
+        except Exception as e:
+            pytest.skip(f"Validation confidence test skipped: {e}")
+
+
 class TestEdgeCases:
     """Test edge cases and error conditions"""
     

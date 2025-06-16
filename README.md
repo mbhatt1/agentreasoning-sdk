@@ -22,11 +22,17 @@ This SDK implements all three tautologies using a state machine architecture wit
 
 ## 🚀 Latest Updates
 
-### ✅ OpenAI GPT-4.1 Nano Model Integration
-- **Optimized Model**: Leveraging GPT-4.1 nano for fast, efficient reasoning
-- **API Compatibility**: Optimized parameter compatibility for nano model
-- **Enhanced JSON Parsing**: Robust parsing strategies for GPT-4.1 nano responses
-- **Enhanced Performance**: Improved speed and efficiency with nano architecture
+### ✅ Multi-LLM Validation System
+- **Cross-Model Validation**: Uses O3 (primary), GPT-4o (validation), GPT-4-turbo (testing) for consensus
+- **20-Disk Hanoi Validation**: Special validation for ultra-high complexity problems
+- **Confidence Adjustment**: Dynamically adjusts confidence based on multi-model consensus
+- **Consensus Building**: Aggregates results from multiple models for enhanced reliability
+
+### ✅ OpenAI Model Integration
+- **Primary Model**: O3 for main reasoning tasks
+- **Validation Models**: GPT-4o and GPT-4-turbo for cross-verification
+- **Enhanced JSON Parsing**: Robust parsing strategies across all models
+- **Model-Specific Optimization**: Tailored parameters for each model type
 
 ### ✅ High Complexity Testing
 - **20-Disk Hanoi Complexity**: Tests include problems at 1,048,575 operation complexity level
@@ -75,8 +81,8 @@ import asyncio
 from agentic_reasoning_system import AgenticReasoningSystemSDK
 
 async def main():
-    # Initialize the SDK (uses GPT-4.1 nano model by default)
-    sdk = AgenticReasoningSystemSDK()
+    # Initialize the SDK with multi-LLM validation (uses O3 + GPT-4o + GPT-4-turbo)
+    sdk = AgenticReasoningSystemSDK(enable_multi_llm_validation=True)
     
     # T1 Reasoning with high complexity
     reasoning_result = await sdk.reason(
@@ -400,6 +406,7 @@ python examples/examples.py --tu --tustar      # TU and TU* examples only
 # Run specialized demonstrations
 python examples/unlimited_demo.py              # Unlimited capability demonstrations
 python examples/hanoi_20_disk_demo.py          # Dedicated 20-disk Hanoi complexity demo
+python examples/multi_llm_validation_demo.py   # Multi-LLM validation and consensus demo
 
 # Get help and list categories
 python examples/examples.py --help             # Show all available options

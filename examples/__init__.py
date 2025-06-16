@@ -9,6 +9,7 @@ Available Examples:
 - examples.py: Comprehensive examples for all tautologies
 - unlimited_demo.py: Demonstrations of unlimited format/domain capabilities
 - hanoi_20_disk_demo.py: Dedicated 20-disk Hanoi ultra-high complexity demonstration
+- multi_llm_validation_demo.py: Multi-LLM validation and consensus building demonstration
 
 Usage:
     # Run all examples
@@ -21,6 +22,7 @@ Usage:
     # Run specialized demos
     python examples/unlimited_demo.py
     python examples/hanoi_20_disk_demo.py
+    python examples/multi_llm_validation_demo.py
     
     # Get help
     python examples/examples.py --help

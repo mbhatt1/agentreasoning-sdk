@@ -9,12 +9,57 @@ This module contains configuration settings and constants used throughout the SD
 import os
 from typing import Dict, Any
 
-# OpenAI Configuration
+# Multi-LLM Configuration for Testing and Validation
 OPENAI_CONFIG = {
     "api_key": os.getenv("OPENAI_API_KEY"),
-    "default_model": "o3",
-    "fallback_model": "gpt-3.5-turbo",
+    "default_model": "o3",  # Primary reasoning model
+    "validation_model": "gpt-4o",  # Secondary validation model
+    "test_model": "gpt-4-turbo",  # Testing and comparison model
+    "fallback_model": "gpt-4",  # Fallback model
     "max_completion_tokens": 2000,
+    
+    # Model-specific configurations
+    "model_configs": {
+        "o3": {
+            "temperature": 1.0,  # Fixed for O3
+            "max_tokens": 2000,
+            "supports_json": True,
+            "reasoning_strength": "highest",
+            "use_for": ["primary_reasoning", "complex_problems", "20_disk_hanoi"]
+        },
+        "gpt-4o": {
+            "temperature": 0.7,
+            "max_tokens": 2000,
+            "supports_json": True,
+            "reasoning_strength": "high",
+            "use_for": ["validation", "cross_verification", "consensus_building"]
+        },
+        "gpt-4-turbo": {
+            "temperature": 0.5,
+            "max_tokens": 2000,
+            "supports_json": True,
+            "reasoning_strength": "high",
+            "use_for": ["testing", "baseline_comparison", "independent_verification"]
+        },
+        "gpt-4": {
+            "temperature": 0.3,
+            "max_tokens": 2000,
+            "supports_json": True,
+            "reasoning_strength": "medium-high",
+            "use_for": ["fallback", "consistency_check", "robustness_testing"]
+        }
+    },
+    
+    # Cross-validation settings
+    "cross_validation": {
+        "enabled": True,
+        "validation_models": ["gpt-4o", "gpt-4-turbo"],
+        "consensus_threshold": 0.7,  # Agreement threshold for validation
+        "max_validation_attempts": 3,
+        "require_consensus_for": ["20_disk_hanoi", "ultra_complex", "tautology_compliance"]
+    },
+    
+    # Temperature settings (legacy support)
     "temperature": {
         "fast_processing": 1.0,
         "slow_processing": 1.0,
@@ -22,7 +67,7 @@ OPENAI_CONFIG = {
         "causal_analysis": 1.0,
         "verification": 1.0
     },
-    "note": "O3 model only supports temperature=1.0"
+    "note": "O3 model only supports temperature=1.0; other models use configured temperatures"
 }
 
 # Tautology Compliance Thresholds (Realistic for AI systems)

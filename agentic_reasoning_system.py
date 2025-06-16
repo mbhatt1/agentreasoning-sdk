@@ -818,6 +818,221 @@ class LLMInterface:
             
         return fallback
 
+class MultiLLMValidator:
+    """Multi-LLM validation system for cross-verification and consensus building"""
+    
+    def __init__(self, api_key: Optional[str] = None):
+        from config import OPENAI_CONFIG
+        self.config = OPENAI_CONFIG
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OpenAI API key required for multi-LLM validation")
+        
+        # Initialize multiple LLM interfaces
+        self.primary_llm = LLMInterface(api_key, self.config["default_model"])
+        self.validation_llm = LLMInterface(api_key, self.config["validation_model"])
+        self.test_llm = LLMInterface(api_key, self.config["test_model"])
+        self.fallback_llm = LLMInterface(api_key, self.config["fallback_model"])
+        
+        self.validation_enabled = self.config["cross_validation"]["enabled"]
+        self.consensus_threshold = self.config["cross_validation"]["consensus_threshold"]
+    
+    async def validate_reasoning_result(self, problem: str, primary_result: Dict[str, Any],
+                                      domain: str = "general") -> Dict[str, Any]:
+        """Validate reasoning result using multiple LLMs"""
+        if not self.validation_enabled:
+            return {"validated": True, "consensus_score": 1.0, "validation_results": []}
+        
+        validation_prompt = f"""
+        Evaluate this reasoning result for correctness and quality:
+        
+        Problem: {problem}
+        Domain: {domain}
+        
+        Primary Result:
+        - Solution: {primary_result.get('solution', 'N/A')}
+        - Confidence: {primary_result.get('confidence', 0)}
+        - Reasoning: {primary_result.get('reasoning_trace', [])}
+        
+        Provide your assessment as JSON:
+        {{
+            "agrees_with_solution": true/false,
+            "confidence_in_assessment": 0.0-1.0,
+            "alternative_solution": "your solution if different",
+            "reasoning_quality": 0.0-1.0,
+            "identified_issues": ["list of any issues found"],
+            "overall_assessment": "brief assessment"
+        }}
+        """
+        
+        validation_results = []
+        
+        # Get validation from multiple models
+        for model_name, llm in [
+            ("validation_model", self.validation_llm),
+            ("test_model", self.test_llm)
+        ]:
+            try:
+                result = await llm.query_json(validation_prompt)
+                result["validator_model"] = model_name
+                validation_results.append(result)
+            except Exception as e:
+                logger.warning(f"Validation failed for {model_name}: {e}")
+                validation_results.append({
+                    "validator_model": model_name,
+                    "error": str(e),
+                    "agrees_with_solution": False,
+                    "confidence_in_assessment": 0.0
+                })
+        
+        # Calculate consensus
+        agreements = [r.get("agrees_with_solution", False) for r in validation_results if "error" not in r]
+        consensus_score = sum(agreements) / len(agreements) if agreements else 0.0
+        
+        return {
+            "validated": consensus_score >= self.consensus_threshold,
+            "consensus_score": consensus_score,
+            "validation_results": validation_results,
+            "requires_review": consensus_score < self.consensus_threshold
+        }
+    
+    async def cross_validate_hanoi_20_disk(self, problem: str, primary_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Special cross-validation for 20-disk Hanoi problems"""
+        
+        hanoi_validation_prompt = f"""
+        Validate this 20-disk Tower of Hanoi solution:
+        
+        Problem: {problem}
+        Primary Solution: {primary_result.get('solution', 'N/A')}
+        
+        Check specifically:
+        1. Is the mathematical formula 2^20 - 1 = 1,048,575 correct?
+        2. Does the solution demonstrate understanding of exponential complexity?
+        3. Is the reasoning about recursive structure sound?
+        
+        Provide validation as JSON:
+        {{
+            "mathematical_correctness": true/false,
+            "formula_verification": "2^20 - 1 = 1048575",
+            "complexity_understanding": true/false,
+            "recursive_reasoning": true/false,
+            "overall_validation": true/false,
+            "confidence": 0.0-1.0,
+            "notes": "any additional observations"
+        }}
+        """
+        
+        validations = []
+        
+        # Use all available models for 20-disk Hanoi validation
+        for model_name, llm in [
+            ("validation_model", self.validation_llm),
+            ("test_model", self.test_llm),
+            ("fallback_model", self.fallback_llm)
+        ]:
+            try:
+                result = await llm.query_json(hanoi_validation_prompt)
+                result["validator_model"] = model_name
+                validations.append(result)
+            except Exception as e:
+                logger.warning(f"20-disk Hanoi validation failed for {model_name}: {e}")
+        
+        # Calculate validation metrics
+        math_correct = sum(v.get("mathematical_correctness", False) for v in validations)
+        complexity_understood = sum(v.get("complexity_understanding", False) for v in validations)
+        recursive_sound = sum(v.get("recursive_reasoning", False) for v in validations)
+        overall_valid = sum(v.get("overall_validation", False) for v in validations)
+        
+        total_validators = len(validations)
+        
+        return {
+            "mathematical_consensus": math_correct / total_validators if total_validators > 0 else 0,
+            "complexity_consensus": complexity_understood / total_validators if total_validators > 0 else 0,
+            "recursive_consensus": recursive_sound / total_validators if total_validators > 0 else 0,
+            "overall_consensus": overall_valid / total_validators if total_validators > 0 else 0,
+            "validation_details": validations,
+            "high_confidence_validation": (overall_valid / total_validators) >= 0.8 if total_validators > 0 else False
+        }
+    
+    async def consensus_reasoning(self, problem: str, representation_format: str, domain: str) -> Dict[str, Any]:
+        """Get consensus reasoning from multiple LLMs"""
+        
+        reasoning_prompt = f"""
+        Solve this problem using systematic reasoning:
+        
+        Problem: {problem}
+        Format: {representation_format}
+        Domain: {domain}
+        
+        Provide your solution as JSON:
+        {{
+            "solution": "your solution",
+            "confidence": 0.0-1.0,
+            "reasoning_steps": ["step 1", "step 2", "..."],
+            "key_insights": ["insight 1", "insight 2"],
+            "certainty_level": "high/medium/low"
+        }}
+        """
+        
+        results = []
+        
+        # Get reasoning from multiple models
+        for model_name, llm in [
+            ("primary", self.primary_llm),
+            ("validation", self.validation_llm),
+            ("test", self.test_llm)
+        ]:
+            try:
+                result = await llm.query_json(reasoning_prompt)
+                result["source_model"] = model_name
+                results.append(result)
+            except Exception as e:
+                logger.warning(f"Consensus reasoning failed for {model_name}: {e}")
+        
+        # Analyze consensus
+        solutions = [r.get("solution", "") for r in results]
+        confidences = [r.get("confidence", 0) for r in results]
+        
+        # Simple consensus: use highest confidence solution if above threshold
+        if confidences:
+            best_idx = confidences.index(max(confidences))
+            consensus_result = results[best_idx].copy()
+            consensus_result["consensus_analysis"] = {
+                "total_models": len(results),
+                "confidence_range": [min(confidences), max(confidences)],
+                "agreement_level": self._calculate_solution_agreement(solutions),
+                "all_results": results
+            }
+            return consensus_result
+        
+        return {"error": "No valid consensus results", "all_results": results}
+    
+    def _calculate_solution_agreement(self, solutions: List[str]) -> float:
+        """Calculate agreement level between solutions"""
+        if len(solutions) < 2:
+            return 1.0
+        
+        # Simple similarity check (can be enhanced with more sophisticated NLP)
+        agreements = 0
+        total_comparisons = 0
+        
+        for i in range(len(solutions)):
+            for j in range(i + 1, len(solutions)):
+                total_comparisons += 1
+                # Basic similarity check
+                sol1, sol2 = solutions[i].lower(), solutions[j].lower()
+                if sol1 and sol2:
+                    # Check for key mathematical terms in Hanoi problems
+                    if "1048575" in sol1 and "1048575" in sol2:
+                        agreements += 1
+                    elif "2^20" in sol1 and "2^20" in sol2:
+                        agreements += 1
+                    elif len(set(sol1.split()) & set(sol2.split())) > len(sol1.split()) * 0.3:
+                        agreements += 0.5
+        
+        return agreements / total_comparisons if total_comparisons > 0 else 0.0
+
+
 class ReasoningStateMachine:
     """State machine for coordinating reasoning process"""
     
@@ -2541,15 +2756,28 @@ class FastSlowThinkingCoordinator:
 class AgenticReasoningSystemSDK:
     """Main SDK class implementing the complete Bhatt Conjectures framework"""
     
-    def __init__(self, openai_api_key: Optional[str] = None, model: str = "o3"):
-        """Initialize the Agentic Reasoning System SDK"""
+    def __init__(self, openai_api_key: Optional[str] = None, model: str = "o3", enable_multi_llm_validation: bool = True):
+        """Initialize the Agentic Reasoning System SDK with multi-LLM validation"""
         self.llm = LLMInterface(openai_api_key, model)
         self.t1_engine = T1ReasoningEngine(self.llm)
         self.tu_engine = TUUnderstandingEngine(self.llm)
         self.tustar_engine = TUStarExtendedUnderstandingEngine(self.llm, self.tu_engine)
-        self.fast_slow_coordinator = FastSlowThinkingCoordinator(self.llm)  # New: Fast/Slow coordination
+        self.fast_slow_coordinator = FastSlowThinkingCoordinator(self.llm)
         
-        logger.info("Agentic Reasoning System SDK initialized with enhanced fast/slow thinking")
+        # Initialize multi-LLM validation system
+        self.enable_validation = enable_multi_llm_validation
+        if self.enable_validation:
+            try:
+                self.multi_llm_validator = MultiLLMValidator(openai_api_key)
+                logger.info("Multi-LLM validation system initialized")
+            except Exception as e:
+                logger.warning(f"Multi-LLM validation disabled due to error: {e}")
+                self.multi_llm_validator = None
+                self.enable_validation = False
+        else:
+            self.multi_llm_validator = None
+        
+        logger.info("Agentic Reasoning System SDK initialized with enhanced fast/slow thinking and multi-LLM validation")
     
     async def reason(self, problem: str, representation_format: str = "natural_language",
                     domain: str = "general", complexity_level: int = 3,
@@ -2580,7 +2808,46 @@ class AgenticReasoningSystemSDK:
             requires_causal_analysis=requires_causal_analysis
         )
         
-        return await self.t1_engine.reason(context)
+        # Get primary reasoning result
+        result = await self.t1_engine.reason(context)
+        
+        # Apply multi-LLM validation for high-complexity problems
+        if self.enable_validation and self.multi_llm_validator:
+            # Special validation for 20-disk Hanoi problems
+            if "20" in problem and ("hanoi" in problem.lower() or "tower" in problem.lower()):
+                validation = await self.multi_llm_validator.cross_validate_hanoi_20_disk(
+                    problem, {
+                        "solution": result.solution,
+                        "confidence": result.confidence,
+                        "reasoning_trace": result.reasoning_trace
+                    }
+                )
+                result.validation_results = validation
+                
+                # Adjust confidence based on validation consensus
+                if validation.get("high_confidence_validation", False):
+                    result.confidence = min(1.0, result.confidence * 1.1)  # Boost confidence
+                elif validation.get("overall_consensus", 0) < 0.5:
+                    result.confidence = max(0.1, result.confidence * 0.8)  # Reduce confidence
+            
+            # General validation for complex problems
+            elif complexity_level >= 4:
+                validation = await self.multi_llm_validator.validate_reasoning_result(
+                    problem, {
+                        "solution": result.solution,
+                        "confidence": result.confidence,
+                        "reasoning_trace": result.reasoning_trace
+                    }, domain
+                )
+                result.validation_results = validation
+                
+                # Adjust confidence based on validation
+                if validation.get("validated", False):
+                    result.confidence = min(1.0, result.confidence * 1.05)
+                elif validation.get("requires_review", False):
+                    result.confidence = max(0.1, result.confidence * 0.9)
+        
+        return result
     
     async def understand(self, proposition: str, representation_format: str = "natural_language",
                         domain: str = "general") -> UnderstandingResult:
